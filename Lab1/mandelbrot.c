@@ -2,7 +2,7 @@
 #include <stdlib.h>
 #include <assert.h>
 #include <malloc.h>
-
+#include <stdio.h>
 #include "mandelbrot.h"
 #include "ppm.h"
 
@@ -121,10 +121,16 @@ compute_chunk(struct mandelbrot_param *args)
 
 /***** You may modify this portion *****/
 #if NB_THREADS > 0
+
+int current_row;
+pthread_mutex_t mut;
+
 void
 init_round(struct mandelbrot_thread *args)
 {
 	// Initialize or reinitialize here variables before any thread starts or restarts computation
+	current_row = 0;
+	pthread_mutex_init(&mut, NULL);
 }
 
 /*
@@ -135,9 +141,41 @@ parallel_mandelbrot(struct mandelbrot_thread *args, struct mandelbrot_param *par
 {
 #if LOADBALANCE == 0
 	// naive *parallel* implementation. Compiled only if LOADBALANCE = 0
+
+	int chunk_height = parameters->height / NB_THREADS;
+	int i = args->id;
+	//printf("starting computation on thread %d\n", i);
+	parameters->begin_h = i * chunk_height;
+	parameters->end_h = (i+1) * chunk_height; //parameters->height;
+	// Entire width: from 0 to picture's width
+	parameters->begin_w = 0;
+	parameters->end_w = parameters->width;
+
+	// Go
+	compute_chunk(parameters);
 #endif
 #if LOADBALANCE == 1
 	// Your load-balanced smarter solution. Compiled only if LOADBALANCE = 1
+	
+	int row_to_compute;
+	while(current_row < parameters->height){
+
+		//get lock
+		pthread_mutex_lock(&mut);
+		row_to_compute = current_row++;
+		pthread_mutex_unlock(&mut);
+		//release lock
+		//printf("computing row %d on thread %d\n", row_to_compute, args->id);
+	
+		parameters->begin_h = row_to_compute;
+		parameters->end_h = row_to_compute + 1; //parameters->height;
+		// Entire width: from 0 to picture's width
+		parameters->begin_w = 0;
+		parameters->end_w = parameters->width;
+
+		compute_chunk(parameters);
+
+	}
 #endif
 #if LOADBALANCE == 2
 	// A second *optional* load-balancing solution. Compiled only if LOADBALANCE = 2

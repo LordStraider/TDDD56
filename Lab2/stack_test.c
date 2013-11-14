@@ -59,6 +59,7 @@ void
 test_init()
 {
   // Initialize your test batch
+  // stack_init(stack, 1);
 }
 
 void
@@ -66,6 +67,7 @@ test_setup()
 {
   // Allocate and initialize your test stack before each test
   data = DATA_VALUE;
+  stack = stack_alloc();
 }
 
 void
@@ -73,6 +75,7 @@ test_teardown()
 {
   // Do not forget to free your stacks after each test
   // to avoid memory leaks as now
+  free(stack);
 }
 
 void
@@ -81,21 +84,115 @@ test_finalize()
   // Destroy properly your test batch
 }
 
+void* push_safe(void* arg) {
+  for (int i = 0; i < MAX_PUSH_POP; i++) {
+    stack_push(stack, &data);
+  }
+  return NULL;
+}
+
+void* pop_safe(void* arg) {
+  int buffer;
+  for (int i = 0; i < MAX_PUSH_POP; i++) {
+    stack_pop(stack, &buffer);
+  }
+  return NULL;
+}
+
 int
 test_push_safe()
 {
   // Make sure your stack remains in a good state with expected content when
   // several threads push concurrently to it
+  pthread_attr_t attr;
+  pthread_t thread[NB_THREADS];
+  thread_test_cas_args_t args[NB_THREADS];
+  pthread_mutexattr_t mutex_attr;
+  pthread_mutex_t lock;
 
-  return 0;
+  size_t counter;
+
+  int i, success;
+
+  counter = 0;
+  pthread_attr_init(&attr);
+  pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_JOINABLE); 
+  pthread_mutexattr_init(&mutex_attr);
+  pthread_mutex_init(&lock, &mutex_attr);
+
+  for (i = 0; i < NB_THREADS; i++) {
+    args[i].id = i;
+    args[i].lock = &lock;
+    pthread_create(&thread[i], &attr, &push_safe, (void*) &args[i]);
+  }
+
+  for (i = 0; i < NB_THREADS; i++) {
+    pthread_join(thread[i], NULL);
+  }
+
+  int buffer;
+  while (stack != NULL) {
+    stack_pop(stack, &buffer);
+    counter ++;
+  }
+
+  success = counter == (size_t)(NB_THREADS * MAX_PUSH_POP);
+
+  if (!success) {
+    printf("Got %ti, expected %i\n", counter, NB_THREADS * MAX_PUSH_POP);
+  } 
+
+  assert(success);
+
+  return success;
 }
 
 int
 test_pop_safe()
 {
   // Same as the test above for parallel pop operation
+  pthread_attr_t attr;
+  pthread_t thread[NB_THREADS];
+  thread_test_cas_args_t args[NB_THREADS];
+  pthread_mutexattr_t mutex_attr;
+  pthread_mutex_t lock;
 
-  return 0;
+  size_t counter;
+
+  int i, success;
+
+  counter = 0;
+  pthread_attr_init(&attr);
+  pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_JOINABLE); 
+  pthread_mutexattr_init(&mutex_attr);
+  pthread_mutex_init(&lock, &mutex_attr);
+
+  int buffer;
+  for (i = 0; i < NB_THREADS * MAX_PUSH_POP; i++) {
+    stack_push(stack, &data);
+  }
+
+  for (i = 0; i < NB_THREADS; i++) {
+    args[i].id = i;
+    args[i].lock = &lock;
+    pthread_create(&thread[i], &attr, &pop_safe, (void*) &args[i]);
+  }
+
+  for (i = 0; i < NB_THREADS; i++) {
+    pthread_join(thread[i], NULL);
+  }
+
+  success = false;
+  if (stack == NULL)
+    success = true;
+
+  if (!success) {
+    printf("Got %ti, expected %i\n", counter, NB_THREADS * MAX_PUSH_POP);
+  } 
+
+  assert(success);
+
+  return success;
 }
 
 // 3 Threads should be enough to raise and detect the ABA problem

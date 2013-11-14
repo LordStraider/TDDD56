@@ -88,7 +88,6 @@ void* push_safe(void* arg) {
 	int i;
 	for (i = 0; i < MAX_PUSH_POP; i++) {
     stack_push(stack, &data);
-		printf("stack:: %p\n", stack);
   }
   return NULL;
 }
@@ -130,13 +129,11 @@ test_push_safe()
   }
 
   int buffer;
-  while (stack != NULL) {
-		printf("We have freed %d, %p\n", counter, stack);
+  while (stack->previous != NULL) {
     stack_pop(stack, &buffer);
     counter ++;
   }
 
-	printf("Now we are joined together in a beutiful bromance <3\n");
   success = counter == (size_t)(NB_THREADS * MAX_PUSH_POP);
 
   if (!success) {
@@ -180,7 +177,7 @@ test_pop_safe()
     pthread_join(thread[i], NULL);
   }
 
-  success = stack == NULL;
+  success = stack->previous == NULL;
 
   if (!success) {
     printf("Got %ti, expected %i\n", counter, NB_THREADS * MAX_PUSH_POP);

@@ -116,11 +116,13 @@ stack_push(stack_t *stack, void* buffer)
 #if NON_BLOCKING == 0
   // Implement a lock_based stack
 	stack_t *new_stack = stack_alloc();
-  new_stack->data = buffer; 
-	pthread_mutex_lock(&mut);	
 
-	new_stack->previous = stack;
-	stack = new_stack;
+	pthread_mutex_lock(&mut);
+
+  new_stack->data = stack->data;
+	new_stack->previous = stack->previous;
+	stack->previous = new_stack;
+	stack->data = buffer;
 
 	pthread_mutex_unlock(&mut);
 #elif NON_BLOCKING == 1
@@ -148,13 +150,15 @@ stack_pop(stack_t *stack, void* buffer)
 {
 #if NON_BLOCKING == 0
   // Implement a lock_based stack
+
 	pthread_mutex_lock(&mut);
 	//pop from stack
-
-	stack_t *popped_element = stack;
+	
 	buffer = stack->data;
-	printf("###previous is %p\n", stack->previous);
-	stack = stack->previous;
+	stack_t *popped_element = stack->previous;
+
+	stack->data = stack->previous->data;
+	stack->previous = stack->previous->previous;
 
 	free(popped_element);
 

@@ -20,7 +20,6 @@ Q: Sketch a scenario featuring several threads raising the ABA problem
 
 A: We have a stack where threads can push and pop tasks.
 
-Stack -> A -> B -> C -> Null
 Thread 1 :
 	old -> Null
 	new -> Null
@@ -33,6 +32,7 @@ Thread 3 :
 	old -> Null
 	new -> Null
 	pool -> Null
+Stack -> A -> B -> C -> Null
 
 Thread 1 and 2 concurrently pops from the thread.
 (due to thread 1 ran out of time in the middle of popping, thus both threads succeed.)

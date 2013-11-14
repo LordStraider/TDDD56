@@ -118,8 +118,8 @@ stack_push(stack_t *stack, void* buffer)
 	pthread_mutex_lock(&mut);
 	
 	stack_t *new_stack = stack_alloc();
+  new_stack->data = buffer; 
 	new_stack->previous = stack;
-	new_stack->data = buffer;	
 
 	stack = new_stack;
 

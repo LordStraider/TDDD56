@@ -30,8 +30,8 @@
 struct stack
 {
   // This is a fake structure; change it to your needs
+	struct stack* previous;
 	void* data;
-	stack* previous;	
 };
 
 typedef struct stack stack_t;

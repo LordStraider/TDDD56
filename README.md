@@ -10,3 +10,91 @@ Q: Describe a load-balancing method that would help reducing the performance los
 
 A: Make some processors take a bigger part of the picture then others.
 
+labboration 1
+
+Q: Write an explaination on how CAS can be used to implement protection for concur- rent use of data structures
+
+A: We have a CAS that we use to see if someone has changed the data since last time. If the data haven't been changed we can change it.
+
+Q: Sketch a scenario featuring several threads raising the ABA problem
+
+A: We have a stack where threads can push and pop tasks.
+
+Stack -> A -> B -> C -> Null
+Thread 1 :
+	old -> Null
+	new -> Null
+	pool -> Null
+Thread 2 :
+	old -> Null
+	new -> Null
+	pool -> Null
+Thread 3 :
+	old -> Null
+	new -> Null
+	pool -> Null
+
+Thread 1 and 2 concurrently pops from the thread.
+(due to thread 1 ran out of time in the middle of popping, thus both threads succeed.)
+Thread 1 :
+	old -> A
+	new -> B
+	pool -> Null
+Thread 2 :
+	old -> A
+	new -> B
+	pool -> A -> Null
+Thread 3 :
+	old -> Null
+	new -> Null
+	pool -> Null
+Stack -> B -> C -> Null
+
+
+Thread 1 :
+	old -> A
+	new -> B
+	pool -> Null
+Thread 2 :
+	old -> A
+	new -> B
+	pool -> A -> Null
+Thread 3 :
+	old -> B
+	new -> C
+	pool -> B -> Null
+Stack -> C -> Null
+
+
+Thread 1 :
+	old -> A
+	new -> B
+	pool -> Null
+Thread 2 :
+	old -> C
+	new -> A
+	pool -> Null
+Thread 3 :
+	old -> B
+	new -> C
+	pool -> B -> Null
+Stack -> A -> C -> Null
+
+
+Thread 1 :
+	old -> A
+	new -> B
+	pool -> A -> Null
+Thread 2 :
+	old -> C
+	new -> A
+	pool -> Null
+Thread 3 :
+	old -> B
+	new -> C
+	pool -> B -> Null
+Stack -> B -> Null
+
+The shared stack should be empty, but it
+points to B in Thread 3’s recycling bin
+

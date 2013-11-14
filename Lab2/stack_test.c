@@ -75,7 +75,7 @@ test_teardown()
 {
   // Do not forget to free your stacks after each test
   // to avoid memory leaks as now
-  free(stack);
+  //free(stack);
 }
 
 void
@@ -85,15 +85,17 @@ test_finalize()
 }
 
 void* push_safe(void* arg) {
-  for (int i = 0; i < MAX_PUSH_POP; i++) {
+	int i;
+	for (i = 0; i < MAX_PUSH_POP; i++) {
     stack_push(stack, &data);
+		printf("stack:: %p\n", stack);
   }
   return NULL;
 }
 
 void* pop_safe(void* arg) {
-  int buffer;
-  for (int i = 0; i < MAX_PUSH_POP; i++) {
+  int buffer, i;
+  for (i = 0; i < MAX_PUSH_POP; i++) {
     stack_pop(stack, &buffer);
   }
   return NULL;
@@ -106,7 +108,6 @@ test_push_safe()
   // several threads push concurrently to it
   pthread_attr_t attr;
   pthread_t thread[NB_THREADS];
-  thread_test_cas_args_t args[NB_THREADS];
   pthread_mutexattr_t mutex_attr;
   pthread_mutex_t lock;
 
@@ -121,9 +122,7 @@ test_push_safe()
   pthread_mutex_init(&lock, &mutex_attr);
 
   for (i = 0; i < NB_THREADS; i++) {
-    args[i].id = i;
-    args[i].lock = &lock;
-    pthread_create(&thread[i], &attr, &push_safe, (void*) &args[i]);
+   pthread_create(&thread[i], &attr, &push_safe, NULL);
   }
 
   for (i = 0; i < NB_THREADS; i++) {
@@ -132,10 +131,12 @@ test_push_safe()
 
   int buffer;
   while (stack != NULL) {
+		printf("We have freed %d, %p\n", counter, stack);
     stack_pop(stack, &buffer);
     counter ++;
   }
 
+	printf("Now we are joined together in a beutiful bromance <3\n");
   success = counter == (size_t)(NB_THREADS * MAX_PUSH_POP);
 
   if (!success) {
@@ -153,7 +154,6 @@ test_pop_safe()
   // Same as the test above for parallel pop operation
   pthread_attr_t attr;
   pthread_t thread[NB_THREADS];
-  thread_test_cas_args_t args[NB_THREADS];
   pthread_mutexattr_t mutex_attr;
   pthread_mutex_t lock;
 
@@ -173,18 +173,14 @@ test_pop_safe()
   }
 
   for (i = 0; i < NB_THREADS; i++) {
-    args[i].id = i;
-    args[i].lock = &lock;
-    pthread_create(&thread[i], &attr, &pop_safe, (void*) &args[i]);
+   pthread_create(&thread[i], &attr, &pop_safe, NULL);
   }
 
   for (i = 0; i < NB_THREADS; i++) {
     pthread_join(thread[i], NULL);
   }
 
-  success = false;
-  if (stack == NULL)
-    success = true;
+  success = stack == NULL;
 
   if (!success) {
     printf("Got %ti, expected %i\n", counter, NB_THREADS * MAX_PUSH_POP);

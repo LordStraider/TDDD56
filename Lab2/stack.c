@@ -115,12 +115,11 @@ stack_push(stack_t *stack, void* buffer)
 {
 #if NON_BLOCKING == 0
   // Implement a lock_based stack
-	pthread_mutex_lock(&mut);
-	
 	stack_t *new_stack = stack_alloc();
   new_stack->data = buffer; 
-	new_stack->previous = stack;
+	pthread_mutex_lock(&mut);	
 
+	new_stack->previous = stack;
 	stack = new_stack;
 
 	pthread_mutex_unlock(&mut);
@@ -129,6 +128,16 @@ stack_push(stack_t *stack, void* buffer)
   // Implement a harware CAS-based stack
 #else
   // Implement a harware CAS-based stack
+
+	stack_t *new_stack = stack_alloc();
+  new_stack->data = buffer; 
+
+	stack_t *old;	
+	do {
+		old = stack;
+		new_stack->previous = old;
+	} while(cas(stack, old, new_stack) != old); 
+
 #endif
 
   return 0;
@@ -142,9 +151,12 @@ stack_pop(stack_t *stack, void* buffer)
 	pthread_mutex_lock(&mut);
 	//pop from stack
 
-	stack_t *new_stack = stack->previous;
+	stack_t *popped_element = stack;
 	buffer = stack->data;
-	stack = new_stack;
+	printf("###previous is %p\n", stack->previous);
+	stack = stack->previous;
+
+	free(popped_element);
 
 	pthread_mutex_unlock(&mut);
 #elif NON_BLOCKING == 1
@@ -152,6 +164,19 @@ stack_pop(stack_t *stack, void* buffer)
   // Implement a harware CAS-based stack
 #else
   // Implement a harware CAS-based stack
+	
+	stack_t *popped_element;
+	stack_t *new_stack;
+	stack_t *old;	
+	do {
+		old = stack;
+		new_stack = old->previous;
+		popped_element = old;
+	} while(cas(stack, old, new_stack) != old); 
+
+	buffer = popped_element->data;
+	free(popped_element);
+
 #endif
 
   return 0;

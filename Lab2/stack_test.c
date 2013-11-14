@@ -67,7 +67,7 @@ test_setup()
 {
   // Allocate and initialize your test stack before each test
   data = DATA_VALUE;
-  stack = stack_alloc();
+  //stack = stack_alloc();
 }
 
 void
@@ -176,7 +176,7 @@ test_pop_safe()
   for (i = 0; i < NB_THREADS; i++) {
     pthread_join(thread[i], NULL);
   }
-
+	
   success = stack->previous == NULL;
 
   if (!success) {

@@ -129,7 +129,7 @@ test_push_safe()
   }
 
   int buffer;
-  while (stack->previous != NULL) {
+  while (stack->next != NULL) {
     stack_pop(stack, &buffer);
     counter ++;
   }
@@ -177,7 +177,7 @@ test_pop_safe()
     pthread_join(thread[i], NULL);
   }
 
-  success = stack->previous == NULL;
+  success = stack->next == NULL;
 
   if (!success) {
     printf("Got %ti, expected %i\n", counter, NB_THREADS * MAX_PUSH_POP);

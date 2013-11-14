@@ -120,8 +120,8 @@ stack_push(stack_t *stack, void* buffer)
 	pthread_mutex_lock(&mut);
 
   new_stack->data = stack->data;
-	new_stack->previous = stack->previous;
-	stack->previous = new_stack;
+	new_stack->next = stack->next;
+	stack->next = new_stack;
 	stack->data = buffer;
 
 	pthread_mutex_unlock(&mut);
@@ -137,7 +137,7 @@ stack_push(stack_t *stack, void* buffer)
 	stack_t *old;	
 	do {
 		old = stack;
-		new_stack->previous = old;
+		new_stack->next = old;
 	} while(cas(stack, old, new_stack) != old); 
 
 #endif
@@ -155,10 +155,10 @@ stack_pop(stack_t *stack, void* buffer)
 	//pop from stack
 	
 	buffer = stack->data;
-	stack_t *popped_element = stack->previous;
+	stack_t *popped_element = stack->next;
 
-	stack->data = stack->previous->data;
-	stack->previous = stack->previous->previous;
+	stack->data = stack->next->data;
+	stack->next = stack->next->next;
 
 	free(popped_element);
 
@@ -174,7 +174,7 @@ stack_pop(stack_t *stack, void* buffer)
 	stack_t *old;	
 	do {
 		old = stack;
-		new_stack = old->previous;
+		new_stack = old->next;
 		popped_element = old;
 	} while(cas(stack, old, new_stack) != old); 
 

@@ -72,6 +72,9 @@ stack_alloc()
   return res;
 }
 
+pthread_mutex_t mut;
+
+
 int
 stack_init(stack_t *stack, size_t size)
 {
@@ -80,6 +83,7 @@ stack_init(stack_t *stack, size_t size)
 
 #if NON_BLOCKING == 0
   // Implement a lock_based stack
+	pthread_mutex_init(&mut, NULL);
 #elif NON_BLOCKING == 1
   /*** Optional ***/
   // Implement a harware CAS-based stack
@@ -101,7 +105,7 @@ stack_check(stack_t *stack)
   //
   // Debugging use only
 
-  assert(stack != NULL);
+	assert(stack != NULL);
 
   return 0;
 }
@@ -111,6 +115,15 @@ stack_push(stack_t *stack, void* buffer)
 {
 #if NON_BLOCKING == 0
   // Implement a lock_based stack
+	pthread_mutex_lock(&mut);
+	
+	stack_t *new_stack = stack_alloc();
+	new_stack->previous = stack;
+	new_stack->data = buffer;	
+
+	stack = new_stack;
+
+	pthread_mutex_unlock(&mut);
 #elif NON_BLOCKING == 1
   /*** Optional ***/
   // Implement a harware CAS-based stack
@@ -126,6 +139,14 @@ stack_pop(stack_t *stack, void* buffer)
 {
 #if NON_BLOCKING == 0
   // Implement a lock_based stack
+	pthread_mutex_lock(&mut);
+	//pop from stack
+
+	stack_t *new_stack = stack->previous;
+	buffer = stack->data;
+	stack = new_stack;
+
+	pthread_mutex_unlock(&mut);
 #elif NON_BLOCKING == 1
   /*** Optional ***/
   // Implement a harware CAS-based stack

@@ -27,10 +27,11 @@
 #ifndef STACK_H
 #define STACK_H
 
+
 struct stack
 {
   // This is a fake structure; change it to your needs
-	struct stack* previous;
+	struct stack* next;
 	void* data;
 };
 

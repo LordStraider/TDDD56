@@ -59,7 +59,7 @@ void
 test_init()
 {
   // Initialize your test batch
-  // stack_init(stack, 1);
+  stack_init(stack, 1);
 }
 
 void
@@ -67,7 +67,7 @@ test_setup()
 {
   // Allocate and initialize your test stack before each test
   data = DATA_VALUE;
-  //stack = stack_alloc();
+  stack = stack_alloc();
 }
 
 void
@@ -87,8 +87,9 @@ test_finalize()
 void* push_safe(void* arg) {
 	int i;
 	for (i = 0; i < MAX_PUSH_POP; i++) {
-    stack_push(stack, &data);
-  }
+		    
+		stack_push(stack, &data);
+	}
   return NULL;
 }
 
@@ -120,6 +121,7 @@ test_push_safe()
   pthread_mutexattr_init(&mutex_attr);
   pthread_mutex_init(&lock, &mutex_attr);
 
+	printf("starting push\n");
   for (i = 0; i < NB_THREADS; i++) {
    pthread_create(&thread[i], &attr, &push_safe, NULL);
   }
@@ -127,9 +129,10 @@ test_push_safe()
   for (i = 0; i < NB_THREADS; i++) {
     pthread_join(thread[i], NULL);
   }
-
+	printf("starting pop. %p,     %p\n", stack->next, stack->next->next);
   int buffer;
-  while (stack->previous != NULL) {
+  while (stack->next != NULL) {
+		printf("popping from test %d, %p\n", counter, stack->next);
     stack_pop(stack, &buffer);
     counter ++;
   }
@@ -154,7 +157,7 @@ test_pop_safe()
   pthread_mutexattr_t mutex_attr;
   pthread_mutex_t lock;
 
-  size_t counter;
+  int counter;
 
   int i, success;
 
@@ -177,7 +180,7 @@ test_pop_safe()
     pthread_join(thread[i], NULL);
   }
 	
-  success = stack->previous == NULL;
+  success = stack->next->next == NULL;
 
   if (!success) {
     printf("Got %ti, expected %i\n", counter, NB_THREADS * MAX_PUSH_POP);

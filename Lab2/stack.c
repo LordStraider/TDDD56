@@ -172,7 +172,7 @@ stack_pop(stack_t *stack, void* buffer)
 	do {
 		old = stack->next;
 		new_stack = old->next;
-	} while(cas(&stack->next, old, new_stack->next) != old); 
+	} while(cas(&stack->next, old, new_stack) != old); 
 	buffer = old->data;
 	free(old);
 #endif

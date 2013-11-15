@@ -121,19 +121,17 @@ test_push_safe()
   pthread_mutexattr_init(&mutex_attr);
   pthread_mutex_init(&lock, &mutex_attr);
 
-	printf("starting push\n");
-  for (i = 0; i < NB_THREADS; i++) {
+	for (i = 0; i < NB_THREADS; i++) {
    pthread_create(&thread[i], &attr, &push_safe, NULL);
   }
 
   for (i = 0; i < NB_THREADS; i++) {
     pthread_join(thread[i], NULL);
   }
-	printf("starting pop. %p,     %p\n", stack->next, stack->next->next);
+	
   int buffer;
   while (stack->next != NULL) {
-		printf("popping from test %d, %p\n", counter, stack->next);
-    stack_pop(stack, &buffer);
+	  stack_pop(stack, &buffer);
     counter ++;
   }
 

@@ -400,92 +400,67 @@ setbuf(stdout, NULL);
   test_finalize();
 #else
   // Run performance tests
-  int i;
   stack_measure_arg_t arg[NB_THREADS];  
 
+  test_init();
   test_setup();
+
+  pthread_attr_t attr;
+  pthread_t thread[NB_THREADS];
+  thread_test_cas_args_t args[NB_THREADS];
+  pthread_mutexattr_t mutex_attr;
+  pthread_mutex_t lock;
+
+  int i, counter, buffer;
+
+  counter = 0;
+  pthread_attr_init(&attr);
+  pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_JOINABLE); 
+  pthread_mutexattr_init(&mutex_attr);
+  pthread_mutex_init(&lock, &mutex_attr);
+
+#if MEASURE == 2
+  for (i = 0; i < NB_THREADS * MAX_PUSH_POP; i++) {
+      stack_push(stack, &data);
+  }
+#endif
+
   clock_gettime(CLOCK_MONOTONIC, &start);
   for (i = 0; i < NB_THREADS; i++) {
       arg[i].id = i;
       (void)arg[i].id; // Makes the compiler to shut up about unused variable arg
       // Run push-based performance test based on MEASURE token
 #if MEASURE == 1
-
-    test_init();
-    test_setup();
-
-    pthread_attr_t attr;
-    pthread_t thread[NB_THREADS];
-    thread_test_cas_args_t args[NB_THREADS];
-    pthread_mutexattr_t mutex_attr;
-    pthread_mutex_t lock;
-
-    int i, counter, buffer;
-
-    counter = 0;
-    pthread_attr_init(&attr);
-    pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_JOINABLE); 
-    pthread_mutexattr_init(&mutex_attr);
-    pthread_mutex_init(&lock, &mutex_attr);
-
     // Push MAX_PUSH_POP times in parallel
     clock_gettime(CLOCK_MONOTONIC, &t_start[i]);
-    for (i = 0; i < NB_THREADS; i++) {
-        pthread_create(&thread[i], &attr, &push_safe, (void*) &args[i]);
-    }
-
-    for (i = 0; i < NB_THREADS; i++) {
-        pthread_join(thread[i], NULL);
-    }
+    pthread_create(&thread[i], &attr, &push_safe, (void*) &args[i]);
     clock_gettime(CLOCK_MONOTONIC, &t_stop[i]);
-
-    while (stack->next != NULL) {
-        stack_pop(stack, &buffer);
-        counter ++;
-    }
-
-    test_finalize();
 #else
-    test_init();
-    test_setup();
-
-    pthread_attr_t attr;
-    pthread_t thread[NB_THREADS];
-    thread_test_cas_args_t args[NB_THREADS];
-    pthread_mutexattr_t mutex_attr;
-    pthread_mutex_t lock;
-
-    int i;
-
-    counter = 0;
-    pthread_attr_init(&attr);
-    pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_JOINABLE); 
-    pthread_mutexattr_init(&mutex_attr);
-    pthread_mutex_init(&lock, &mutex_attr);
-
-
-    int buffer;
-    for (i = 0; i < NB_THREADS * MAX_PUSH_POP; i++) {
-        stack_push(stack, &data);
-    }
     // Run pop-based performance test based on MEASURE token
     clock_gettime(CLOCK_MONOTONIC, &t_start[i]);
-    for (i = 0; i < NB_THREADS; i++) {
-        pthread_create(&thread[i], &attr, &pop_safe, (void*) &args[i]);
-    }
-
-    for (i = 0; i < NB_THREADS; i++) {
-        pthread_join(thread[i], NULL);
-    }
+    pthread_create(&thread[i], &attr, &pop_safe, (void*) &args[i]);
     clock_gettime(CLOCK_MONOTONIC, &t_stop[i]);
-
-
-    test_finalize();
 #endif
     }
 
+    for (i = 0; i < NB_THREADS; i++) {
+        pthread_join(thread[i], NULL);
+    }
   // Wait for all threads to finish
   clock_gettime(CLOCK_MONOTONIC, &stop);
+
+
+#if MEASURE == 1
+/*  while (stack->next->next != NULL) {
+      stack_pop(stack->next, &buffer);      
+      counter ++;
+      //stack = stack->next;
+ printf("measure 1 %d, %d\n", counter, MAX_PUSH_POP);
+  }*/
+ #endif
+
+
+  test_finalize();
 
   // Print out results
   for (i = 0; i < NB_THREADS; i++)

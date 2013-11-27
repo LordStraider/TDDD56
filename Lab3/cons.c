@@ -1,7 +1,7 @@
 /*
- * stack.h
+ * cons.c
  *
- *  Created on: 18 Oct 2011
+ *  Created on: 5 Sep 2011
  *  Copyright 2011 Nicolas Melot
  *
  * This file is part of TDDD56.
@@ -22,30 +22,29 @@
  */
 
 #include <stdlib.h>
-#include <pthread.h>
+#include <stdio.h>
 
-#ifndef STACK_H
-#define STACK_H
-
-
-struct stack
+int
+main(int argc, char ** argv)
 {
-  // This is a fake structure; change it to your needs
-	struct stack* next;
-	void* data;
-};
+	int i, min, count;
 
-typedef struct stack stack_t;
+	if(argc < 4)
+	{
+		printf("Usage: %s <min_value> <max_value> <number of values>\n");
+		return EXIT_FAILURE;
+	}
+	else
+	{
+		min = atoi(argv[1]);
+		count = atoi(argv[3]);
 
-// Pushes an element in a thread-safe manner
-int stack_push_safe(stack_t *, void*);
-// Pops an element in a thread-safe manner
-int stack_pop_safe(stack_t *, void*);
-int aba_test_stack_pop(stack_t *, stack_t **, int id);
-int aba_test_stack_push(stack_t *, stack_t *);
-int stack_pop(stack_t *stack, void* buffer);
-int stack_push(stack_t *stack, void* buffer);
-stack_t*
-stack_alloc();
-
-#endif /* STACK_H */
+		printf("%d ", count);
+		for(i = 0; i < count; i++)
+		{
+			printf("%d ", min);
+		}
+	}
+	
+	return 0;
+}

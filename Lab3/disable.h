@@ -1,7 +1,7 @@
 /*
- * stack.h
+ * rand.c
  *
- *  Created on: 18 Oct 2011
+ *  Created on: 5 Sep 2011
  *  Copyright 2011 Nicolas Melot
  *
  * This file is part of TDDD56.
@@ -21,31 +21,21 @@
  * 
  */
 
-#include <stdlib.h>
-#include <pthread.h>
+#ifndef _DISABLE_H_
+#define _DISABLE_H_
 
-#ifndef STACK_H
-#define STACK_H
+#include <sys/types.h>
 
+#if MEASURE == 1
+// Disable printf so that no printf interfere with automated test
+void
+no_printf(char * str, ...);
+#define printf no_printf
 
-struct stack
-{
-  // This is a fake structure; change it to your needs
-	struct stack* next;
-	void* data;
-};
+// Disable qsort
+#define qsort no_qsort
+void
+no_qsort(void*, size_t, size_t, int(*compar)(const void *, const void *));
+#endif
 
-typedef struct stack stack_t;
-
-// Pushes an element in a thread-safe manner
-int stack_push_safe(stack_t *, void*);
-// Pops an element in a thread-safe manner
-int stack_pop_safe(stack_t *, void*);
-int aba_test_stack_pop(stack_t *, stack_t **, int id);
-int aba_test_stack_push(stack_t *, stack_t *);
-int stack_pop(stack_t *stack, void* buffer);
-int stack_push(stack_t *stack, void* buffer);
-stack_t*
-stack_alloc();
-
-#endif /* STACK_H */
+#endif

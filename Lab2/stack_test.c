@@ -55,11 +55,21 @@ typedef int data_t;
 stack_t *stack;
 data_t data;
 
+void stack_dump() {
+  printf("\n\nhead :: ");
+  stack_t* current = stack->next;
+  while (current != NULL) {
+    printf("%c->", *(char*)current->data);
+    current = current->next;
+  }
+  printf("\n\n");
+}
+
 void
 test_init()
 {
   // Initialize your test batch
-  stack_init(stack, 1);
+  //stack_init(stack, 1);
 }
 
 void
@@ -75,26 +85,30 @@ test_teardown()
 {
   // Do not forget to free your stacks after each test
   // to avoid memory leaks as now
-  //free(stack);
+  free(stack);
+  stack->next = NULL;
 }
 
 void
 test_finalize()
 {
   // Destroy properly your test batch
+  
 }
 
 void* push_safe(void* arg) {
-	int i;
+	char buffer = 'A';
+  int i;
 	for (i = 0; i < MAX_PUSH_POP; i++) {
 		    
-		stack_push(stack, &data);
+		stack_push(stack, &buffer);
 	}
   return NULL;
 }
 
 void* pop_safe(void* arg) {
-  int buffer, i;
+  char buffer;
+  int i;
   for (i = 0; i < MAX_PUSH_POP; i++) {
     stack_pop(stack, &buffer);
   }
@@ -121,7 +135,7 @@ test_push_safe()
   pthread_mutexattr_init(&mutex_attr);
   pthread_mutex_init(&lock, &mutex_attr);
 
-	for (i = 0; i < NB_THREADS; i++) {
+  for (i = 0; i < NB_THREADS; i++) {
    pthread_create(&thread[i], &attr, &push_safe, NULL);
   }
 
@@ -129,9 +143,9 @@ test_push_safe()
     pthread_join(thread[i], NULL);
   }
 	
-  int buffer;
+  char buffer;
   while (stack->next != NULL) {
-	  stack_pop(stack, &buffer);
+    stack_pop(stack, &buffer);
     counter ++;
   }
 
@@ -165,38 +179,106 @@ test_pop_safe()
   pthread_mutexattr_init(&mutex_attr);
   pthread_mutex_init(&lock, &mutex_attr);
 
-  int buffer;
+  char buffer = 'A';
   for (i = 0; i < NB_THREADS * MAX_PUSH_POP; i++) {
-    stack_push(stack, &data);
+    stack_push(stack, &buffer);
   }
 
   for (i = 0; i < NB_THREADS; i++) {
-   pthread_create(&thread[i], &attr, &pop_safe, NULL);
+    pthread_create(&thread[i], &attr, &pop_safe, NULL);
   }
 
   for (i = 0; i < NB_THREADS; i++) {
     pthread_join(thread[i], NULL);
   }
-	
-  success = stack->next->next == NULL;
+
+  success = stack->next == NULL;
 
   if (!success) {
     printf("Got %ti, expected %i\n", counter, NB_THREADS * MAX_PUSH_POP);
-  } 
+  }
 
   assert(success);
 
   return success;
 }
 
+
+
 // 3 Threads should be enough to raise and detect the ABA problem
 #define ABA_NB_THREADS 3
+void* thread_test_aba (void* args) {
+  int id = *(int*)args;
+  
+  //printf("before pop: Thread %d buffer %p\n", id, buffer);
+  stack_t* elem;
+  int i,j;
+  switch(id){
+    case 0:
+      aba_test_stack_pop(stack, &elem, id);
+      printf("Thread %d popping %c\n", id, *(char*)elem->data);
+      break;
+    case 1:
+      for(i = 0; i < 5000; i++){j++;}
+      aba_test_stack_pop(stack, &elem, id);
+      printf("Thread %d popping %c at address %X\n", id, *(char*) elem->data, elem);
+      for(i = 0; i < 80000; i++){j++;}
+      aba_test_stack_push(stack, elem);
+      printf("Thread %d pushing %c at address %X\n", id, *(char*) elem->data, elem);
+      break;
+    case 2:
+      for(i = 0; i < 50000; i++){j++;}
+      aba_test_stack_pop(stack, &elem, id);
+      printf("Thread %d popping %c\n", id, *(char*)elem->data);
+      break;
+  }
+  //printf("after  pop: Thread %d buffer %X char: %c\n", id, buffer, *buffer);
+  //free(buffer); 
+}
 
 int
 test_aba()
 {
   int success, aba_detected = 0;
   // Write here a test for the ABA problem
+
+
+  pthread_attr_t attr;
+  pthread_t thread[ABA_NB_THREADS];
+  int args[ABA_NB_THREADS];
+  pthread_mutexattr_t mutex_attr;
+  pthread_mutex_t lock;
+
+  int i;
+
+  pthread_attr_init(&attr);
+  pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_JOINABLE); 
+  pthread_mutexattr_init(&mutex_attr);
+  pthread_mutex_init(&lock, &mutex_attr);
+
+  char buffer[3];
+  buffer[0] = 'C';
+  stack_push(stack, &buffer[0]);
+  buffer[1] = 'B';
+  stack_push(stack, &buffer[1]);
+  buffer[2] = 'A';
+  stack_push(stack, &buffer[2]);
+
+  stack_dump();
+
+  for (i = 0; i < ABA_NB_THREADS; i++)
+    {
+      args[i] = i;
+      pthread_create(&thread[i], &attr, &thread_test_aba, (void*) &args[i]);
+    }
+
+  for (i = 0; i < ABA_NB_THREADS; i++)
+    {
+      pthread_join(thread[i], NULL);
+    }
+  
+  stack_dump();
+  aba_detected = (*(char*)stack->next->data == 'B');
   success = aba_detected;
   return success;
 }
@@ -321,7 +403,6 @@ setbuf(stdout, NULL);
   stack_measure_arg_t arg[NB_THREADS];  
 
   test_setup();
-
   clock_gettime(CLOCK_MONOTONIC, &start);
   for (i = 0; i < NB_THREADS; i++)
     {
@@ -331,6 +412,7 @@ setbuf(stdout, NULL);
 #if MEASURE == 1
       clock_gettime(CLOCK_MONOTONIC, &t_start[i]);
       // Push MAX_PUSH_POP times in parallel
+      
       clock_gettime(CLOCK_MONOTONIC, &t_stop[i]);
 #else
       // Run pop-based performance test based on MEASURE token

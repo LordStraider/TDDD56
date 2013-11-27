@@ -80,7 +80,7 @@ stack_init(stack_t *stack, size_t size)
 {
   assert(stack != NULL);
   assert(size > 0);
-
+  
 #if NON_BLOCKING == 0
   // Implement a lock_based stack
 	pthread_mutex_init(&mut, NULL);
@@ -119,10 +119,9 @@ stack_push(stack_t *stack, void* buffer)
 
 	pthread_mutex_lock(&mut);
 
-  new_stack->data = stack->data;
+  new_stack->data = buffer;
 	new_stack->next = stack->next;
 	stack->next = new_stack;
-	stack->data = buffer;
 
 	pthread_mutex_unlock(&mut);
 #elif NON_BLOCKING == 1
@@ -133,7 +132,7 @@ stack_push(stack_t *stack, void* buffer)
 
 	stack_t *new_stack = stack_alloc();
   new_stack->data = buffer; 
-	stack_t *old;	
+	stack_t *old;
 	do {
 		old = stack->next;
 		new_stack->next = old;
@@ -153,10 +152,9 @@ stack_pop(stack_t *stack, void* buffer)
 	pthread_mutex_lock(&mut);
 	//pop from stack
 	
-	buffer = stack->data;
 	stack_t *popped_element = stack->next;
-
-	//stack->data = stack->next->data;
+	*(char*)buffer = *(char*)stack->next->data;
+  
 	stack->next = stack->next->next;
 
 	free(popped_element);
@@ -173,10 +171,44 @@ stack_pop(stack_t *stack, void* buffer)
 		old = stack->next;
 		new_stack = old->next;
 	} while(cas(&stack->next, old, new_stack) != old); 
-	buffer = old->data;
+
+  *(char*)buffer = *(char*)old->data;
 	free(old);
 #endif
+  return 0;
+}
+
+int
+aba_test_stack_push(stack_t *stack, stack_t* elem)
+{
+
+	stack_t *old;
+	do {
+		old = stack->next;
+		elem->next = old;
+	} while(cas(&stack->next, old, elem) != old); 
+	
 
   return 0;
 }
 
+int
+aba_test_stack_pop(stack_t *stack, stack_t** buffer, int id)
+{
+  // Implement a hardware CAS-based stack
+	stack_t *new_stack;
+	stack_t *old;	
+	do {
+		old = stack->next;
+		new_stack = old->next;
+    if (id == 0) {
+      int i,j;
+      printf("Thread 0 waiting for CAS with old=%c comparing %X with %X.\n", *(char*)old->data, stack->next, old); 
+      for (i = 0; i < 105000; i++) { j++; }
+      printf("Thread 0 resuming, comparing %X with %X.\n", stack->next, old);    
+    }
+	} while(cas(&stack->next, old, new_stack) != old); 
+
+  *buffer = old;
+  return 0;
+}

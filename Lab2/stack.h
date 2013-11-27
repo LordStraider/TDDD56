@@ -41,5 +41,9 @@ typedef struct stack stack_t;
 int stack_push_safe(stack_t *, void*);
 // Pops an element in a thread-safe manner
 int stack_pop_safe(stack_t *, void*);
+int aba_test_stack_pop(stack_t *, stack_t **, int id);
+int aba_test_stack_push(stack_t *, stack_t *);
+stack_t*
+stack_alloc();
 
 #endif /* STACK_H */

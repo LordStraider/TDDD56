@@ -33,11 +33,59 @@
 #include "sort.h"
 #include "simple_quicksort.h"
 
+void par_merge_sort(void* arg){
+  sort_args_t *args = (sort_args_t*) arg;
+
+}
+
+void par_merge(void* arg){
+  sort_args_t *args = (sort_args_t*) arg;
+
+}
+
+void seq_merge(void* arg){
+  sort_args_t *args = (sort_args_t*) arg;
+
+}
+
+struct sort_args
+{
+  struct array * array;
+};
+typedef struct sort_args sort_args_t;
+
 int
 sort(struct array * array)
 {
-	simple_quicksort_ascending(array);
+    
+    pthread_attr_t attr;
+    pthread_t thread[NB_THREADS];
+    sort_args args[NB_THREADS];
+    pthread_mutexattr_t mutex_attr;
+    pthread_mutex_t lock;
 
-	return 0;
+    size_t counter;
+
+    int i, success;
+
+    counter = 0;
+    pthread_attr_init(&attr);
+    pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_JOINABLE); 
+    pthread_mutexattr_init(&mutex_attr);
+    pthread_mutex_init(&lock, &mutex_attr);
+
+    for (i = 0; i < NB_THREADS; i++)
+    {
+        args[i].array = array;
+        pthread_create(&thread[i], &attr, &par_merge_sort, (void*) &args[i]);
+    }
+
+    for (i = 0; i < NB_THREADS; i++)
+    {
+        pthread_join(thread[i], NULL);
+    }
+    simple_quicksort_ascending(array);
+
+    return 0;
 }
 

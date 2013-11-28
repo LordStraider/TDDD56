@@ -43,16 +43,16 @@ struct sort_args
   value* data;
 };
 typedef struct sort_args sort_args_t;
-#define MY_NB_THREADS 4
+#define NB_THREADS 4
 void par_merge_sort(void* arg){
   sort_args_t *args = (sort_args_t*) arg;
   value* data = args->data;
   
-	printf("thread id: %d, start: %d, stop: %d\n, length: %d\n", args->id, args->start, args->stop, args->length);
+	//printf("thread id: %d, start: %d, stop: %d\n, length: %d\n", args->id, args->start, args->stop, args->length);
 	
   value * result = (value*) malloc(args->length * sizeof(value)) ;
 	if(result == NULL){
-		printf("MALLOC FAILED\n");
+	//	printf("MALLOC FAILED\n");
 	}
 
   split(data, 0, args->length, result);
@@ -134,8 +134,8 @@ int
 sort(struct array * array)
 {
     pthread_attr_t attr;
-    pthread_t thread[MY_NB_THREADS];
-    sort_args_t args[MY_NB_THREADS];
+    pthread_t thread[NB_THREADS];
+    sort_args_t args[NB_THREADS];
     pthread_mutexattr_t mutex_attr;
     pthread_mutex_t lock;
 
@@ -156,8 +156,8 @@ sort(struct array * array)
     printf("---------\n");*/
 
     float chunkSize = array->length;
-    chunkSize = chunkSize/MY_NB_THREADS;
-    for (i = 0; i < MY_NB_THREADS; i++)
+    chunkSize = chunkSize/NB_THREADS;
+    for (i = 0; i < NB_THREADS; i++)
     {
         args[i].id = i;
 
@@ -168,18 +168,18 @@ sort(struct array * array)
 				pthread_create(&thread[i], &attr, &par_merge_sort, (void*) &args[i]);
     }
 
-    for (i = 0; i < MY_NB_THREADS;i++)
+    for (i = 0; i < NB_THREADS;i++)
     {
         pthread_join(thread[i], NULL);
     }
 
     value * result = (value*) malloc(array->length * sizeof(value));
 		if(result == NULL){
-			printf("final malloc failed!\n");
+		//	printf("final malloc failed!\n");
 		}
 
 /*
-    for (i = 0; i < MY_NB_THREADS-1; i+=2){
+    for (i = 0; i < NB_THREADS-1; i+=2){
       int begin = args[i].start;
       int middle = args[i].stop;
       int end = args[i+1].stop;
@@ -202,12 +202,12 @@ sort(struct array * array)
    //   printf("data[%d] = %d\n", i, array->data[i]);
    // }
 
-  recursive_merging(array->data, 0, array->length, result, ceil((chunkSize / MY_NB_THREADS)));
+  recursive_merging(array->data, 0, array->length, result, ceil(chunkSize));
 
 	free(result);
 
     //insSort(array->data, array->length);
-  printf("Sorted %d elements.\n", array->length);
+  //printf("Sorted %d elements.\n", array->length);
     //simple_quicksort_ascending(array);
 
   //  printf("\n-------------\n");

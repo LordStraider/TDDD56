@@ -69,6 +69,23 @@ void split(value* data, int begin, int end, value* result){
 
 }
 
+void recursive_merging(value* data, int begin, int end, value* result){
+
+  if(end - begin < 2)
+    return;
+
+  float length = end-begin;
+  
+
+  int middle = ceil(begin + length / 2);
+
+  recursive_merging(data, begin, middle, result);
+  recursive_merging(data, middle, end, result);
+  
+  merge(data, begin, middle, end, result);
+  memcpy(data + begin, result + begin, (end - begin)*sizeof(value));
+    
+}
 
 void merge(value* data, int begin, int middle, int end, value* result){
   int i0 = begin;
@@ -164,8 +181,8 @@ sort(struct array * array)
         pthread_join(thread[i], NULL);
     }
 
-    /*value result[array->length];
-
+    value result[array->length];
+/*
     for (i = 0; i < NB_THREADS-1; i+=2){
       int begin = args[i].start;
       int middle = args[i].stop;
@@ -176,13 +193,20 @@ sort(struct array * array)
       
     }*/
 
-    insSort(array->data, array->length);
 
     //simple_quicksort_ascending(array);
-    /*printf("\n-------------\n");
+    printf("\n-------------\n");
     for (i = 0; i < array->length; i++) {
       printf("data[%d] = %d\n", i, array->data[i]);
-    }*/
+    }
+    recursive_merging(array->data, 0, array->length, result);
+    //insSort(array->data, array->length);
+
+    //simple_quicksort_ascending(array);
+    printf("\n-------------\n");
+    for (i = 0; i < array->length; i++) {
+      printf("data[%d] = %d\n", i, array->data[i]);
+    }
 
     return 0;
 }

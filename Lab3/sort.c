@@ -38,20 +38,21 @@ struct sort_args
 {
   int id;
   int length;
+  int start;
+  int stop;
   struct array * array;
 };
 typedef struct sort_args sort_args_t;
-#define NUMMER_AV_THREADS 1
+#define NUMMER_AV_THREADS 2
 void par_merge_sort(void* arg){
   sort_args_t *args = (sort_args_t*) arg;
   value* data = args->array->data;
-  int length = args->length;
+  
+  printf("thread id: %d, start: %d, stop: %d\n", args->id, args->start, args->stop);
 
-  printf("thread id: %d\n", args->id);
+  value result[args->length];
 
-  value result[length];
-
-  split(data, 0, length, result);
+  split(data, args->start, args->stop, result);
 }
 
 void split(value* data, int begin, int end, value* result){
@@ -64,9 +65,7 @@ void split(value* data, int begin, int end, value* result){
   split(data, middle, end, result);  
   merge(data, begin, middle, end, result);
   
-  printf("fore memcpy data[%d] = %d, result = %d, begin: %d, end: %d, ptr: %x, ptr2: %x\n", 0, data[0], result[0], begin, end, data, data+begin);
   memcpy(data + begin, result + begin, (end - begin)*sizeof(value));
-  printf("efter memcpy data[%d] = %d, result = %d\n", 0, data[0], result[0]);
 
 }
 
@@ -75,11 +74,7 @@ void merge(value* data, int begin, int middle, int end, value* result){
   int i0 = begin;
   int i1 = middle;  
   int j;
-    int i;
-    printf("-----merge - before for----\n");  
-    for (i = begin; i < end; i++) {
-      printf("result[%d] = %d\n", i, result[i]);
-    }
+
   // While there are elements in the left or right runs
   for (j = begin; j < end; j++) {
     // If left run head exists and is <= existing right run head.
@@ -88,11 +83,6 @@ void merge(value* data, int begin, int middle, int end, value* result){
     } else
       result[j] = data[i1++];
   }
-    printf("-----merge - after for----\n");  
-    for (i = begin; i < end; i++) {
-      printf("result[%d] = %d\n", i, result[i]);
-    }
-    printf("---------\n");
 }
 
 void swap(int * a, int * b){
@@ -136,11 +126,14 @@ sort(struct array * array)
     }
     printf("---------\n");
 
+    float chunkSize = array->length;
     for (i = 0; i < NUMMER_AV_THREADS; i++)
     {
         args[i].array = array;
         args[i].id = i;
-        args[i].length = array->length;
+        args[i].length = array->length; // / NUMMER_AV_THREADS;
+        args[i].start = ceil((chunkSize / NUMMER_AV_THREADS) * i);
+        args[i].stop = ceil((chunkSize / NUMMER_AV_THREADS) * (i+1));
         pthread_create(&thread[i], &attr, &par_merge_sort, (void*) &args[i]);
     }
 
@@ -148,7 +141,7 @@ sort(struct array * array)
     {
         pthread_join(thread[i], NULL);
     }
-    //simple_quicksort_ascending(array);
+    simple_quicksort_ascending(array);
     printf("\n-------------\n");
     for (i = 0; i < array->length; i++) {
       printf("data[%d] = %d\n", i, array->data[i]);

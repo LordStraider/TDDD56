@@ -154,7 +154,8 @@ sort(struct array * array)
     {
         args[i].array = array;
         args[i].id = i;
-        args[i].length = array->length; // / MY_NB_THREADS;        args[i].start = ceil((chunkSize / MY_NB_THREADS) * i);
+        args[i].length = array->length; // / MY_NB_THREADS;
+        args[i].start = ceil((chunkSize / MY_NB_THREADS) * i);
         args[i].stop = ceil((chunkSize / MY_NB_THREADS)* (i+1));
         pthread_create(&thread[i], &attr, &par_merge_sort, (void*) &args[i]);
     }
@@ -178,18 +179,19 @@ sort(struct array * array)
 
 
     //simple_quicksort_ascending(array);
-    printf("\n-------------\n");
+/*    printf("\n-------------\n");
     for (i = 0; i < array->length; i++) {
       printf("data[%d] = %d\n", i, array->data[i]);
     }
-    recursive_merging(array->data, 0, array->length, result);
+  */  
+  recursive_merging(array->data, 0, array->length, result);
     //insSort(array->data, array->length);
-
+  printf("Sorted %d elements.\n", array->length);
     //simple_quicksort_ascending(array);
-    printf("\n-------------\n");
+    /*printf("\n-------------\n");
     for (i = 0; i < array->length; i++) {
       printf("data[%d] = %d\n", i, array->data[i]);
-    }
+    }*/
 
     return 0;
 }

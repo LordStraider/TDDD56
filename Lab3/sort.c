@@ -43,12 +43,12 @@ struct sort_args
   struct array * array;
 };
 typedef struct sort_args sort_args_t;
-#define NUMMER_AV_THREADS 2
+#define NB_THREADS 5
 void par_merge_sort(void* arg){
   sort_args_t *args = (sort_args_t*) arg;
   value* data = args->array->data;
   
-  printf("thread id: %d, start: %d, stop: %d\n", args->id, args->start, args->stop);
+  //printf("thread id: %d, start: %d, stop: %d\n", args->id, args->start, args->stop);
 
   value result[args->length];
 
@@ -101,12 +101,34 @@ void seq_merge(void* arg){
 
 }
 
+void insSort(value* data, int length) {
+  int i, valueToInsert, holePos;
+  for (i = 0; i < length; i++) {
+    // at the start of the iteration, A[0..i-1] are in sorted order
+    // this iteration will insert A[i] into that sorted order
+    // save A[i], the value that will be inserted into the array on this iteration
+    valueToInsert = data[i];
+    // now mark position i as the hole; A[i]=A[holePos] is now empty
+    holePos = i;
+    // keep moving the hole down until the valueToInsert is larger than 
+    // what's just below the hole or the hole has reached the beginning of the array
+    while (holePos > 0 && valueToInsert < data[holePos - 1]) { 
+      //value to insert doesn't belong where the hole currently is, so shift 
+      data[holePos] = data[holePos - 1]; //shift the larger value up
+      holePos--;       //move the hole position down
+    }
+    // hole is in the right position, so put valueToInsert into the hole
+    data[holePos] = valueToInsert;
+    // A[0..i] are now in sorted order
+  }
+}
+
 int
 sort(struct array * array)
 {
     pthread_attr_t attr;
-    pthread_t thread[NUMMER_AV_THREADS];
-    sort_args_t args[NUMMER_AV_THREADS];
+    pthread_t thread[NB_THREADS];
+    sort_args_t args[NB_THREADS];
     pthread_mutexattr_t mutex_attr;
     pthread_mutex_t lock;
 
@@ -120,32 +142,47 @@ sort(struct array * array)
     pthread_mutexattr_init(&mutex_attr);
     pthread_mutex_init(&lock, &mutex_attr);
     
-    printf("---------\n");  
+    /*printf("---------\n");  
     for (i = 0; i < array->length; i++) {
       printf("data[%d] = %d\n", i, array->data[i]);
     }
-    printf("---------\n");
+    printf("---------\n");*/
 
     float chunkSize = array->length;
-    for (i = 0; i < NUMMER_AV_THREADS; i++)
+    for (i = 0; i < NB_THREADS; i++)
     {
         args[i].array = array;
         args[i].id = i;
-        args[i].length = array->length; // / NUMMER_AV_THREADS;
-        args[i].start = ceil((chunkSize / NUMMER_AV_THREADS) * i);
-        args[i].stop = ceil((chunkSize / NUMMER_AV_THREADS) * (i+1));
+        args[i].length = array->length; // / NB_THREADS;
+        args[i].start = ceil((chunkSize / NB_THREADS) * i);
+        args[i].stop = ceil((chunkSize / NB_THREADS) * (i+1));
         pthread_create(&thread[i], &attr, &par_merge_sort, (void*) &args[i]);
     }
 
-    for (i = 0; i < NUMMER_AV_THREADS; i++)
+    for (i = 0; i < NB_THREADS; i++)
     {
         pthread_join(thread[i], NULL);
     }
-    simple_quicksort_ascending(array);
-    printf("\n-------------\n");
+
+    /*value result[array->length];
+
+    for (i = 0; i < NB_THREADS-1; i+=2){
+      int begin = args[i].start;
+      int middle = args[i].stop;
+      int end = args[i+1].stop;
+      printf("b: %d, m: %d, e: %d\n", begin, middle, end);
+      merge(array->data, begin, middle, end, result);
+      memcpy(array->data + begin, result + begin, (end - begin)*sizeof(value));
+      
+    }*/
+
+    insSort(array->data, array->length);
+
+    //simple_quicksort_ascending(array);
+    /*printf("\n-------------\n");
     for (i = 0; i < array->length; i++) {
       printf("data[%d] = %d\n", i, array->data[i]);
-    }
+    }*/
 
     return 0;
 }

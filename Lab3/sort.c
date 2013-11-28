@@ -40,19 +40,24 @@ struct sort_args
   int length;
   int start;
   int stop;
-  struct array * array;
+  value* data;
 };
 typedef struct sort_args sort_args_t;
 #define MY_NB_THREADS 4
 void par_merge_sort(void* arg){
   sort_args_t *args = (sort_args_t*) arg;
-  value* data = args->array->data;
+  value* data = args->data;
   
-  //printf("thread id: %d, start: %d, stop: %d\n", args->id, args->start, args->stop);
+	printf("thread id: %d, start: %d, stop: %d\n, length: %d\n", args->id, args->start, args->stop, args->length);
+	
+  value * result = (value*) malloc(args->length * sizeof(value)) ;
+	if(result == NULL){
+		printf("MALLOC FAILED\n");
+	}
 
-  value result[args->length];
+  split(data, 0, args->length, result);
 
-  split(data, args->start, args->stop, result);
+	free(result);
 }
 
 void split(value* data, int begin, int end, value* result){
@@ -63,24 +68,25 @@ void split(value* data, int begin, int end, value* result){
   int middle = ceil(begin + length / 2);
   split(data, begin, middle, result);
   split(data, middle, end, result);  
-  merge(data, begin, middle, end, result);
+	
+	//printf("s: merging %d to %d with %d to %d\n", begin, middle, middle, end);     
+	merge(data, begin, middle, end, result);
   
   memcpy(data + begin, result + begin, (end - begin)*sizeof(value));
 }
 
-void recursive_merging(value* data, int begin, int end, value* result){
+void recursive_merging(value* data, int begin, int end, value* result, int chunk_size){
 
-  if(end - begin < 2)
+  if(end - begin <= chunk_size)
     return;
 
-  float length = end-begin;
-  
+  float length = end - begin;
 
   int middle = ceil(begin + length / 2);
 
-  recursive_merging(data, begin, middle, result);
-  recursive_merging(data, middle, end, result);
-  
+  recursive_merging(data, begin, middle, result, chunk_size);
+  recursive_merging(data, middle, end, result, chunk_size);
+
   merge(data, begin, middle, end, result);
   memcpy(data + begin, result + begin, (end - begin)*sizeof(value));
     
@@ -94,7 +100,7 @@ void merge(value* data, int begin, int middle, int end, value* result){
   // While there are elements in the left or right runs
   for (j = begin; j < end; j++) {
     // If left run head exists and is <= existing right run head.
-    if (i0 < middle && (i1 >= end || data[i0] <= data[i1])) { // 
+    if (i0 < middle && (i1 >= end || data[i0] <= data[i1])) {
       result[j] = data[i0++];
     } else
       result[j] = data[i1++];
@@ -152,12 +158,12 @@ sort(struct array * array)
     float chunkSize = array->length;
     for (i = 0; i < MY_NB_THREADS; i++)
     {
-        args[i].array = array;
         args[i].id = i;
-        args[i].length = array->length; // / MY_NB_THREADS;
+        args[i].length = ceil((chunkSize / MY_NB_THREADS)); // array->length; // / MY_NB_THREADS;
         args[i].start = ceil((chunkSize / MY_NB_THREADS) * i);
         args[i].stop = ceil((chunkSize / MY_NB_THREADS)* (i+1));
-        pthread_create(&thread[i], &attr, &par_merge_sort, (void*) &args[i]);
+				args[i].data = array->data+args[i].start;        
+				pthread_create(&thread[i], &attr, &par_merge_sort, (void*) &args[i]);
     }
 
     for (i = 0; i < MY_NB_THREADS;i++)
@@ -165,7 +171,10 @@ sort(struct array * array)
         pthread_join(thread[i], NULL);
     }
 
-    value result[array->length];
+    value * result = (value*) malloc(array->length * sizeof(value));
+		if(result == NULL){
+			printf("final malloc failed!\n");
+		}
 /*
     for (i = 0; i < MY_NB_THREADS-1; i+=2){
       int begin = args[i].start;
@@ -184,14 +193,24 @@ sort(struct array * array)
       printf("data[%d] = %d\n", i, array->data[i]);
     }
   */  
-  recursive_merging(array->data, 0, array->length, result);
+
+   // printf("\n-------------\n");
+   // for (i = 0; i < array->length; i++) {
+   //   printf("data[%d] = %d\n", i, array->data[i]);
+   // }
+
+  recursive_merging(array->data, 0, array->length, result, ceil((chunkSize / MY_NB_THREADS)));
+
+	free(result);
+
     //insSort(array->data, array->length);
   printf("Sorted %d elements.\n", array->length);
     //simple_quicksort_ascending(array);
-    /*printf("\n-------------\n");
-    for (i = 0; i < array->length; i++) {
-      printf("data[%d] = %d\n", i, array->data[i]);
-    }*/
+
+  //  printf("\n-------------\n");
+   // for (i = 0; i < array->length; i++) {
+   //   printf("data[%d] = %d\n", i, array->data[i]);
+   // }
 
     return 0;
 }

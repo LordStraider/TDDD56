@@ -150,13 +150,15 @@ sort(struct array * array)
     printf("---------\n");*/
 
     float chunkSize = array->length;
+    chunkSize = ceil(chunkSize/MY_NB_THREADS);
     for (i = 0; i < MY_NB_THREADS; i++)
     {
-        args[i].array = array;
         args[i].id = i;
-        args[i].length = array->length; // / MY_NB_THREADS;
-        args[i].start = ceil((chunkSize / MY_NB_THREADS) * i);
-        args[i].stop = ceil((chunkSize / MY_NB_THREADS)* (i+1));
+        args[i].length = chunkSize;
+        args[i].start = chunkSize * i);
+        args[i].stop = chunkSize * (i+1));
+        args[i].array = array_alloc(chunkSize);
+        memcpy(array->data + args[i].start, args[i].array, args[i].length*sizeof(value));
         pthread_create(&thread[i], &attr, &par_merge_sort, (void*) &args[i]);
     }
 

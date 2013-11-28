@@ -156,12 +156,14 @@ sort(struct array * array)
     printf("---------\n");*/
 
     float chunkSize = array->length;
+    chunkSize = chunkSize/MY_NB_THREADS;
     for (i = 0; i < MY_NB_THREADS; i++)
     {
         args[i].id = i;
-        args[i].length = ceil((chunkSize / MY_NB_THREADS)); // array->length; // / MY_NB_THREADS;
-        args[i].start = ceil((chunkSize / MY_NB_THREADS) * i);
-        args[i].stop = ceil((chunkSize / MY_NB_THREADS)* (i+1));
+
+        args[i].length = ceil(chunkSize);
+        args[i].start = ceil(chunkSize * i);
+        args[i].stop = ceil(chunkSize * (i+1));
 				args[i].data = array->data+args[i].start;        
 				pthread_create(&thread[i], &attr, &par_merge_sort, (void*) &args[i]);
     }
@@ -175,6 +177,7 @@ sort(struct array * array)
 		if(result == NULL){
 			printf("final malloc failed!\n");
 		}
+
 /*
     for (i = 0; i < MY_NB_THREADS-1; i+=2){
       int begin = args[i].start;

@@ -128,8 +128,8 @@ int
 sort(struct array * array)
 {
     pthread_attr_t attr;
-    pthread_t thread[MY_NB_THREADS]4
-    sort_args_t args[MY_NB_THREADS]4
+    pthread_t thread[MY_NB_THREADS];
+    sort_args_t args[MY_NB_THREADS];
     pthread_mutexattr_t mutex_attr;
     pthread_mutex_t lock;
 
@@ -150,23 +150,23 @@ sort(struct array * array)
     printf("---------\n");*/
 
     float chunkSize = array->length;
-    for (i = 0; i < MY_NB_THREADS;4i++)
+    for (i = 0; i < MY_NB_THREADS; i++)
     {
         args[i].array = array;
         args[i].id = i;
-        args[i].length = array->length; // / MY_NB_THREADS;4        args[i].start = ceil((chunkSize / MY_NB_THREADS)4* i);
-        args[i].stop = ceil((chunkSize / MY_NB_THREADS)4* (i+1));
+        args[i].length = array->length; // / MY_NB_THREADS;        args[i].start = ceil((chunkSize / MY_NB_THREADS) * i);
+        args[i].stop = ceil((chunkSize / MY_NB_THREADS)* (i+1));
         pthread_create(&thread[i], &attr, &par_merge_sort, (void*) &args[i]);
     }
 
-    for (i = 0; i < MY_NB_THREADS;4i++)
+    for (i = 0; i < MY_NB_THREADS;i++)
     {
         pthread_join(thread[i], NULL);
     }
 
     value result[array->length];
 /*
-    for (i = 0; i < MY_NB_THREADS-4; i+=2){
+    for (i = 0; i < MY_NB_THREADS-1; i+=2){
       int begin = args[i].start;
       int middle = args[i].stop;
       int end = args[i+1].stop;

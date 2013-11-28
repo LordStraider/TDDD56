@@ -167,6 +167,12 @@ sort(struct array * array)
         pthread_join(thread[i], NULL);
     }
 
+    for (i = 0; i < MY_NB_THREADS;i++)
+    {
+        memcpy(args[i].array, array->data + args[i].start, args[i].length*sizeof(value));
+        array_free(args[i].array);
+    }
+
     value result[array->length];
 /*
     for (i = 0; i < MY_NB_THREADS-1; i+=2){

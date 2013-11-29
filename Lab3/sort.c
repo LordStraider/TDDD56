@@ -43,7 +43,7 @@ struct sort_args
   value* data;
 };
 typedef struct sort_args sort_args_t;
-#define MY_NB_THREADS 4
+
 void par_merge_sort(void* arg){
   sort_args_t *args = (sort_args_t*) arg;
   value* data = args->data;

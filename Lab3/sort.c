@@ -42,7 +42,7 @@ struct sort_args
 };
 typedef struct sort_args sort_args_t;
 
-void par_merge_sort(void* arg){
+/*void par_merge_sort(void* arg){
     sort_args_t *args = (sort_args_t*) arg;
     value* data = args->data;
 
@@ -102,7 +102,7 @@ void merge(value* data, int begin, int middle, int end, value* result){
            result[j] = data[i1++];
         }
     }
-}
+}*/
 
 int numb_threads_created; //låst variabel
 int MY_NB_THREADS = 0;
@@ -124,21 +124,20 @@ void SParMergesort (void* arg){
     }
 printf("oaunwfeouanwef\n");
     // parallel divide and conquer:
+
     //mutex låsa
     numb_threads_created++; //mutex lås på denna
     int new_thread = numb_threads_created;
     //låsa upp
-    args[numb_threads_created].id = numb_threads_created;
-    args[numb_threads_created].n = ceil(n - n / 2);
-    args[numb_threads_created].data = data + ceil(n / 2);
-    pthread_create(&thread[numb_threads_created], &attr, &SParMergesort, (void*) &args[numb_threads_created]);
+    args[new_thread].id = new_thread;
+    args[new_thread].n = ceil(n - n / 2);
+    args[new_thread].data = data + ceil(n / 2);
+    pthread_create(&thread[new_thread], &attr, &SParMergesort, (void*) &args[new_thread]);
 
 
-    value * result = (value*) malloc(args->length * sizeof(value)) ;
-    if(result == NULL){
-        printf("MALLOC FAILED\n");
-    }
-    SeqMergesort(data, n/2, result);
+
+    args[args->id].n = ceil(n / 2);
+    SParMergesort(&args[0]);
 
     
     pthread_join(thread[new_thread], NULL);

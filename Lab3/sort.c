@@ -109,6 +109,9 @@ void merge(value* data, int begin, int middle, int end, value* result){
 }*/
 
 int numb_threads_created; //låst variabel
+
+    pthread_mutex_t lock;
+
 //int MY_NB_THREADS = 3;
 void SParMergesort (void* arg){
     sort_args_t *args = (sort_args_t*) arg;
@@ -117,21 +120,26 @@ void SParMergesort (void* arg){
     if (n==1) {
         return; // nothing to sort
     } 
+    
+		pthread_mutex_lock(&lock);
 
     if (numb_threads_created >= NB_THREADS - 1) {
+				pthread_mutex_unlock(&lock);
+
         SeqMergesort(data, (int)n); // switch to sequential
     } else {
         // parallel divide and conquer:
-//printf("aonwarg");
         //mutex låsa
-      //  numb_threads_created++; //mutex lås på denna
-      	__sync_fetch_and_add(&numb_threads_created, 1);
-	      int new_thread = numb_threads_created;
+				numb_threads_created++; //mutex lås på denna
+
+      	int new_thread = numb_threads_created;
         //låsa upp
-        args[new_thread].id = new_thread;
+	      args[new_thread].id = new_thread;
         args[new_thread].n = (int)ceil(n - n / 2);
         args[new_thread].data = data + (int)ceil(n / 2);
         pthread_create(&thread[new_thread], &attr, &SParMergesort, (void*) &args[new_thread]);
+
+				pthread_mutex_unlock(&lock);
 
         args[args->id].n = (int)ceil(n / 2);
         SParMergesort(&args[0]);
@@ -192,7 +200,7 @@ sort(struct array * array)
 {
     numb_threads_created = 0; 
     pthread_mutexattr_t mutex_attr;
-    pthread_mutex_t lock;
+
 
     int i;
     pthread_attr_init(&attr);

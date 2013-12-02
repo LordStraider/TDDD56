@@ -109,7 +109,7 @@ void merge(value* data, int begin, int middle, int end, value* result){
 }*/
 
 int numb_threads_created; //låst variabel
-int MY_NB_THREADS = 0;
+//int MY_NB_THREADS = 3;
 void SParMergesort (void* arg){
     sort_args_t *args = (sort_args_t*) arg;
     value* data = args->data;
@@ -118,15 +118,15 @@ void SParMergesort (void* arg){
         return; // nothing to sort
     } 
 
-    if (numb_threads_created >= NB_THREADS) {
+    if (numb_threads_created >= NB_THREADS - 1) {
         SeqMergesort(data, (int)n); // switch to sequential
     } else {
         // parallel divide and conquer:
-
+//printf("aonwarg");
         //mutex låsa
       //  numb_threads_created++; //mutex lås på denna
       	__sync_fetch_and_add(&numb_threads_created, 1);
-	int new_thread = numb_threads_created;
+	      int new_thread = numb_threads_created;
         //låsa upp
         args[new_thread].id = new_thread;
         args[new_thread].n = (int)ceil(n - n / 2);
@@ -153,8 +153,9 @@ void SeqMergesort(value* data, int n) {
     
     float length = n;
     int middle = ceil(length / 2);
+    //printf("midd: %d, n: %d, data: %X\n", middle, n, data);
     SeqMergesort(data, middle);
-    SeqMergesort(data+middle, middle); 
+    SeqMergesort(data+middle, n-middle); 
     
     //printf("s: merging %d to %d with %d to %d\n",, middle, middle, n);  
     value * result = (value*) malloc(n * sizeof(value));
@@ -173,7 +174,8 @@ void SeqMerge(value* data, int middle, int end, value* result){
     int i0 = 0;
     int i1 = middle;
     int j;
-
+//  if (data[0] == 0)
+//printf("midd: %d, end: %d, data[0] = %d\n", middle, end, data[0]);
     // While there are elements in the left or right runs
     for (j = 0; j < end; j++) {
         // If left run head exists and is <= existing right run head.
@@ -192,11 +194,7 @@ sort(struct array * array)
     pthread_mutexattr_t mutex_attr;
     pthread_mutex_t lock;
 
-    size_t counter;
-
-    int i, success;
-
-    counter = 0;
+    int i;
     pthread_attr_init(&attr);
     pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_JOINABLE); 
     pthread_mutexattr_init(&mutex_attr);
@@ -269,10 +267,10 @@ sort(struct array * array)
   //printf("Sorted %d elements.\n", array->length);
     //simple_quicksort_ascending(array);
 
-   printf("\n-------------\n");
+   /*printf("\n-------------\n");
     for (i = 0; i < 10; i++) {
       printf("data[%d] = %d\n", i, array->data[i]);
-    }
+    }*/
 
     return 0;
 }

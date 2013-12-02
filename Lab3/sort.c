@@ -42,6 +42,10 @@ struct sort_args
 };
 typedef struct sort_args sort_args_t;
 
+pthread_attr_t attr;
+pthread_t thread[NB_THREADS];
+sort_args_t args[NB_THREADS];
+
 /*void par_merge_sort(void* arg){
     sort_args_t *args = (sort_args_t*) arg;
     value* data = args->data;
@@ -110,61 +114,64 @@ void SParMergesort (void* arg){
     sort_args_t *args = (sort_args_t*) arg;
     value* data = args->data;
     int n = args->n;
-
     if (n==1) {
         return; // nothing to sort
     } 
 
-    if (numb_threads_created < MY_NB_THREADS) {
-        value * result = (value*) malloc(args->length * sizeof(value)) ;
-        if(result == NULL){
-            printf("MALLOC FAILED\n");
-        }
-        SeqMergesort(data, n, result); // switch to sequential
+    if (numb_threads_created >= MY_NB_THREADS) {
+        SeqMergesort(data, n); // switch to sequential
+    } else {
+        // parallel divide and conquer:
+
+        //mutex låsa
+        numb_threads_created++; //mutex lås på denna
+        int new_thread = numb_threads_created;
+        //låsa upp
+        args[new_thread].id = new_thread;
+        args[new_thread].n = ceil(n - n / 2);
+        args[new_thread].data = data + (int)ceil(n / 2);
+        pthread_create(&thread[new_thread], &attr, &SParMergesort, (void*) &args[new_thread]);
+
+
+        args[args->id].n = ceil(n / 2);
+        SParMergesort(&args[0]);
+        
+        pthread_join(thread[new_thread], NULL);
+
+        value * result = (value*) malloc(n * sizeof(value));
+        int middle = ceil(n/2);
+        //printf("n: %d, middle: %d \n", n, middle);
+        SeqMerge(data, middle, n, result);
+        memcpy(data, result, n * sizeof(value));
+        free(result);
     }
-printf("oaunwfeouanwef\n");
-    // parallel divide and conquer:
-
-    //mutex låsa
-    numb_threads_created++; //mutex lås på denna
-    int new_thread = numb_threads_created;
-    //låsa upp
-    args[new_thread].id = new_thread;
-    args[new_thread].n = ceil(n - n / 2);
-    args[new_thread].data = data + ceil(n / 2);
-    pthread_create(&thread[new_thread], &attr, &SParMergesort, (void*) &args[new_thread]);
-
-
-
-    args[args->id].n = ceil(n / 2);
-    SParMergesort(&args[0]);
-
-    
-    pthread_join(thread[new_thread], NULL);
-
-    SeqMerge(data, 0, ceil(n / 2), ceil(n - n / 2), result);
-
-    free(result);
 }
 
-void SeqMergesort(value* data, int n, value* result) {
+void SeqMergesort(value* data, int n) {
     if(n < 2)
         return;
-
+    
     float length = n;
     int middle = ceil(length / 2);
-    SeqMergesort(data, middle, result);
-    SeqMergesort(data, middle, result);  
+    SeqMergesort(data, middle);
+    SeqMergesort(data+middle, middle); 
+    
+    //printf("s: merging %d to %d with %d to %d\n",, middle, middle, n);  
+    value * result = (value*) malloc(n * sizeof(value));
 
-    //printf("s: merging %d to %d with %d to %d\n",, middle, middle, n);     
+    if(result == NULL){
+        printf("MALLOC FAILED\n");
+    }
+
     SeqMerge(data, middle, n, result);
 
     memcpy(data, result, n * sizeof(value));
+    free(result);
 }
 
 void SeqMerge(value* data, int middle, int end, value* result){
     int i0 = 0;
-    int i1 = middle;  
+    int i1 = middle;
     int j;
 
     // While there are elements in the left or right runs
@@ -182,9 +189,6 @@ int
 sort(struct array * array)
 {
     numb_threads_created = 0; 
-    pthread_attr_t attr;
-    pthread_t thread[NB_THREADS];
-    sort_args_t args[NB_THREADS];
     pthread_mutexattr_t mutex_attr;
     pthread_mutex_t lock;
 
@@ -265,10 +269,10 @@ sort(struct array * array)
   //printf("Sorted %d elements.\n", array->length);
     //simple_quicksort_ascending(array);
 
-  //  printf("\n-------------\n");
-   // for (i = 0; i < array->length; i++) {
-   //   printf("data[%d] = %d\n", i, array->data[i]);
-   // }
+   printf("\n-------------\n");
+    for (i = 0; i < 10; i++) {
+      printf("data[%d] = %d\n", i, array->data[i]);
+    }
 
     return 0;
 }

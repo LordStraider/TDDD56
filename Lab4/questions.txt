@@ -1,0 +1,18 @@
+Questions:
+
+1 a: 16 cores. 
+
+1 b: Yes & no (different precision?).
+
+2 a: 
+	int x = blockIdx.x * blockDim.x + threadIdx.x;
+	int y = blockIdx.y * blockDim.y + threadIdx.y;
+	int index = x * N + y;
+
+2 b:
+
+
+
+g++ -c milli.c
+nvcc matrix_gpu.cu milli.o -o matrix && ./matrix
+

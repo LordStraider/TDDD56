@@ -1,6 +1,7 @@
 *.html
 *.bin
 *.DS_Store
+*.eps
 
 =======
 # Object files

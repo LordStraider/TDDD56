@@ -56,7 +56,7 @@ pthread_mutex_t printlock;
 void SParMergesort (void* arg){
     sort_args_t *args = (sort_args_t*) arg;
     value* data = args->data;
-		value* result = args->result;
+	value* result = args->result;
     float n = args->n;
 
 /*        pthread_mutex_lock(&printlock);
@@ -79,15 +79,15 @@ printf("thread: %d working on %d data\n", args->id, args->n);
 
         pthread_mutex_lock(&lock);
         numb_threads_created++; //mutex lås på denna
-				int new_thread = numb_threads_created;
-				pthread_mutex_unlock(&lock);
+		int new_thread = numb_threads_created;
+		pthread_mutex_unlock(&lock);
         
         /*pthread_mutex_lock(&printlock);
         printf("thread: %d creating thread: %d\n", args->id, new_thread);
         pthread_mutex_unlock(&printlock);
 */
-				int halfSize = (int)ceil(n / 2);
-				args[new_thread].id = new_thread;
+		int halfSize = (int)ceil(n / 2);
+		args[new_thread].id = new_thread;
         args[new_thread].n = (int) n - halfSize;
         args[new_thread].data = data + (int) (n - halfSize);
         args[new_thread].result = result + (int) (n - halfSize);
@@ -165,10 +165,10 @@ sort(struct array * array)
     args[numb_threads_created].id = numb_threads_created;
     args[numb_threads_created].n = array->length;
     args[numb_threads_created].data = array->data;
-		args[numb_threads_created].result = result;
+	args[numb_threads_created].result = result;
     SParMergesort(&args[0]);
 
-		free(result);
+	free(result);
 
    /*printf("\n-------------\n");
     for (i = 0; i < 10; i++) {

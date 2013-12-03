@@ -38,8 +38,9 @@ struct sort_args
 {
     int id;
     int n;
+    int loadBalanced;
     value* data;
-		value* result;
+    value* result;
 };
 typedef struct sort_args sort_args_t;
 
@@ -56,7 +57,7 @@ pthread_mutex_t printlock;
 void SParMergesort (void* arg){
     sort_args_t *args = (sort_args_t*) arg;
     value* data = args->data;
-	value* result = args->result;
+    value* result = args->result;
     float n = args->n;
 
 /*        pthread_mutex_lock(&printlock);
@@ -67,35 +68,33 @@ printf("thread: %d working on %d data\n", args->id, args->n);
         return; // nothing to sort
     }     
 
-    if (numb_threads_created >= NB_THREADS - 1) {
-//				pthread_mutex_unlock(&lock);
+    if (numb_threads_created >= NB_THREADS - 1 || args->id != 0) {
+//              pthread_mutex_unlock(&lock);
        /* pthread_mutex_lock(&printlock);
         printf("thread: %d working in seq with %d data\n", args->id, args->n);
         pthread_mutex_unlock(&printlock);
-        */SeqMergesort(data, result, (int)n); // switch to sequential
+        */
+        SeqMergesort(data, result, (int)n); // switch to sequential
     } else {
         // parallel divide and conquer:
         //pthread_mutex_lock(&lock);
 
         pthread_mutex_lock(&lock);
         numb_threads_created++; //mutex lås på denna
-		int new_thread = numb_threads_created;
-		pthread_mutex_unlock(&lock);
+        int new_thread = numb_threads_created;
+        pthread_mutex_unlock(&lock);
         
         /*pthread_mutex_lock(&printlock);
         printf("thread: %d creating thread: %d\n", args->id, new_thread);
         pthread_mutex_unlock(&printlock);
 */
-		int halfSize = (int)ceil(n / 2);
-		args[new_thread].id = new_thread;
-        args[new_thread].n = (int) n - halfSize;
-        args[new_thread].data = data + (int) (n - halfSize);
-        args[new_thread].result = result + (int) (n - halfSize);
+        int halfSize = (int)ceil(n / NB_THREADS);
+        args[new_thread].id = new_thread;
+        args[new_thread].n = args->loadBalanced;
+        args[new_thread].data = data + new_thread * args->loadBalanced;
+        args[new_thread].result = result + new_thread * args->loadBalanced;
         pthread_create(&thread[new_thread], &attr, &SParMergesort, (void*) &args[new_thread]);
         
-        int i;
-        //for(i = 0; i < 10000; i++) {}
-        args[args->id].n = halfSize;
 //        printf(" still id: %d, halfsize: %d args.n: %d \n", args->id, halfSize, args[args->id].n);
         SParMergesort(&args[args->id]);
         /*pthread_mutex_lock(&printlock);
@@ -165,10 +164,11 @@ sort(struct array * array)
     args[numb_threads_created].id = numb_threads_created;
     args[numb_threads_created].n = array->length;
     args[numb_threads_created].data = array->data;
-	args[numb_threads_created].result = result;
+    args[numb_threads_created].loadBalanced = ceil(array->length / NB_THREADS);
+    args[numb_threads_created].result = result;
     SParMergesort(&args[0]);
 
-	free(result);
+    free(result);
 
    /*printf("\n-------------\n");
     for (i = 0; i < 10; i++) {

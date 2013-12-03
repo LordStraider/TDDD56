@@ -68,9 +68,12 @@ void SParMergesort (void* arg){
     } else {
         // parallel divide and conquer:
         pthread_mutex_lock(&lock);
+
         numb_threads_created++; //mutex lås på denna
-				
+				int new_thread = numb_threads_created;
+
 				pthread_mutex_unlock(&lock);
+
 				int halfSize = (int)ceil(n / 2);
 				args[new_thread].id = new_thread;
         args[new_thread].n = n - halfSize;

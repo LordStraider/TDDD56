@@ -11,6 +11,27 @@ Questions:
 
 2 b:
 
+If too many threads are used per block the result can be incorrect. For instance, using 1 block on a 1024x1024 matrix completes much faster than it does for other block sizes, but returns an incorrect matrix. Big number of threads isn't supported by the gpu and gives undefined behavior.
+ 
+The GPU is faster for data-sizes starting at 64*64
+
+We got best results using 64x64 grids on a 1024x1024 data set resulting in a 16x16 block size. We want to have as many threads as possible.
+CPU time: 6.54 ms
+GPU time: 0.22 ms
+
+2 c:
+
+Now it took 0.49 ms so around 2.1 times slower with non-coalescing.
+
+3 :
+
+The grid and blocksizes mean that very few threads are used. 
+
+We increased the grid size to 64. 
+
+After making the improvements, we were able to calculate an image in 3.8 ms, compared to ~130 ms for parts with heavy computations.   
+
+
 
 
 g++ -c milli.c

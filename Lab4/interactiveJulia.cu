@@ -13,6 +13,7 @@
 // Image data
 	unsigned char	*pixels;
 	int	 gImageWidth, gImageHeight;
+	unsigned char *dev_bitmap;
 
 // Init image data
 void initBitmap(int width, int height)
@@ -72,10 +73,15 @@ __device__ int julia( int x, int y, float r, float im)
 __global__ void kernel( unsigned char *ptr, float r, float im)
 {
     // map from blockIdx to pixel position
+
+	int x = blockIdx.x * blockDim.x + threadIdx.x;
+	int y = blockIdx.y * blockDim.y + threadIdx.y;
+	int offset = y * DIM + x;
+/*
     int x = blockIdx.x;
     int y = blockIdx.y;
     int offset = x + y * gridDim.x;
-
+*/
     // now calculate the value at that position
     int juliaValue = julia( x, y, r, im );
     ptr[offset*4 + 0] = 255 * juliaValue/200;
@@ -89,16 +95,37 @@ float theReal, theImag;
 // Compute CUDA kernel and display image
 void Draw()
 {
-	unsigned char *dev_bitmap;
-	
-	cudaMalloc( &dev_bitmap, gImageWidth*gImageHeight*4 );
+	dim3	grid(64,64);
 
-	dim3	grid(DIM,DIM);
-	kernel<<<grid,1>>>( dev_bitmap, theReal, theImag);
-	cudaThreadSynchronize();
-	cudaMemcpy( pixels, dev_bitmap, gImageWidth*gImageHeight*4, cudaMemcpyDeviceToHost );
+	//TIMERS
+ 	cudaEvent_t myEvent, myEvent2;
+  cudaEventCreate(&myEvent);
+  cudaEventCreate(&myEvent2);
+  cudaEventRecord(myEvent, 0);
+  cudaEventSynchronize(myEvent);
+
 	
-	cudaFree( dev_bitmap );
+	//GPU CALL	unsigned char *dev_bitmap;
+	dim3 dimBlock( DIM/64, DIM/64);
+	kernel<<<grid,dimBlock>>>( dev_bitmap, theReal, theImag);
+	
+	cudaThreadSynchronize();
+		
+	//TIMERS  
+	cudaEventRecord(myEvent2, 0);
+  cudaEventSynchronize(myEvent2);
+
+	float theTime;
+
+  cudaEventElapsedTime(&theTime, myEvent, myEvent2);
+
+	cudaEventDestroy(myEvent);
+	cudaEventDestroy(myEvent2);
+
+	printf("The gpu calculation took: %0.2f ms\n", theTime);
+
+	cudaMemcpy( pixels, dev_bitmap, gImageWidth*gImageHeight*4, cudaMemcpyDeviceToHost );
+
 	
 // Dump the whole picture onto the screen.	
 	glClearColor( 0.0, 0.0, 0.0, 1.0 );
@@ -123,9 +150,13 @@ int main( int argc, char** argv)
 	glutInitWindowSize( DIM, DIM );
 	glutCreateWindow("CUDA on live GL");
 	glutDisplayFunc(Draw);
+
 	glutPassiveMotionFunc(MouseMovedProc);
 	
 	initBitmap(DIM, DIM);
-	
+
+	cudaMalloc( &dev_bitmap, gImageWidth*gImageHeight*4 );
 	glutMainLoop();
+	cudaFree( dev_bitmap );	
+
 }

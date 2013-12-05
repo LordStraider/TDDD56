@@ -15,7 +15,7 @@ void matrix(float *a, float *b, float *c)
 {
 	int x = blockIdx.x * blockDim.x + threadIdx.x;
 	int y = blockIdx.y * blockDim.y + threadIdx.y;
-	int index = x * N + y;
+	int index = y * N + x;
 	c[index] = a[index] + b[index];
 }
 
@@ -26,7 +26,7 @@ void add_matrix(float *a, float *b, float *c, int N)
 	for (int i = 0; i < N; i++)
 		for (int j = 0; j < N; j++)
 		{
-			index = i + j*N;
+			index = j + i*N;
 			c[index] = a[index] + b[index];
 		}
 }
@@ -38,6 +38,8 @@ int main()
 	float *a = new float[N*N];
 	float *b = new float[N*N];
 	float *c = new float[N*N];
+	float *seq_c = new float[N*N];
+
 
 	for (int i = 0; i < N; i++)
 		for (int j = 0; j < N; j++)
@@ -47,8 +49,8 @@ int main()
 		}
 	
 	ResetMilli();
-	add_matrix(a, b, c, N);	
-	int time = GetMilliseconds();
+	add_matrix(a, b, seq_c, N);	
+	int time = GetMicroseconds();
 	/*for (int i = 0; i < N; i++)	{
 		for (int j = 0; j < N; j++)	{
 			printf("%0.2f ", c[i+j*N]);
@@ -56,7 +58,7 @@ int main()
 		}
 		printf("\n");
 	}*/
-	printf("cpu took: %d ms", time);
+	printf("cpu took: %0.2f ms", (float)time/1000);
 	printf("\n-----------------\n");
 
 	float *cd, *a_g, *b_g;
@@ -100,4 +102,14 @@ int main()
 	}*/
 
 	printf("The gpu calculation took: %0.2f ms\n", theTime);
+	for (int i = 0; i < N; i++)	{
+		for (int j = 0; j < N; j++)	{
+			int index = i+j*N;
+			if (c[index] != seq_c[index]){
+				printf("Incorrect matrix result\n");				
+				return -1;
+			}			
+		}
+	}
+
 }

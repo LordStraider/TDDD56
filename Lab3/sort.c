@@ -119,20 +119,32 @@ void SParMergesort (void* arg){
     value* data = args->data;
 		value* result = args->result;
     float n = args->n;
-    if (n==1) {
+    if (n < 2) {
         return; // nothing to sort
     } 
     
 		pthread_mutex_lock(&lock);
-
-    if (numb_threads_created >= NB_THREADS - 1 || n < 100) {
+		printf("thread %d has %d elements to sort\n", args->id, args->n);
+    if (numb_threads_created >= NB_THREADS - 1 || n < 20) {
+				printf("thread %d working seq\n", args->id);				
 				pthread_mutex_unlock(&lock);
-
-        SeqMergesort(data, result, (int)n); // switch to sequential
+		
+ // switch to sequential
+				int halfSize = (int)ceil(n / 2);
+				args->n = halfSize;
+        SParMergesort(&args);
+				args->n = n - halfSize;
+        args->data = data + halfSize;
+        args->result = result + halfSize;
+				SParMergesort(&args);
+        SeqMerge(data, halfSize, (int)n, result);
+        memcpy(data, result, n * sizeof(value));
     } else {
-        // parallel divide and conquer:
+      //  parallel divide and conquer:
         numb_threads_created++;
 				int new_thread = numb_threads_created;
+				printf("thread %d spawns %d\n", args->id, new_thread);				
+
 				pthread_mutex_unlock(&lock);
 				int halfSize = (int)ceil(n / 2);
 				args[new_thread].id = new_thread;
@@ -145,11 +157,11 @@ void SParMergesort (void* arg){
         args[args->id].n = halfSize;
         SParMergesort(&args[0]);
 
-
         pthread_join(thread[new_thread], NULL);
-		pthread_mutex_lock(&lock);
+				
+				pthread_mutex_lock(&lock);
         numb_threads_created--;
-		pthread_mutex_unlock(&lock);
+				pthread_mutex_unlock(&lock);
 
         int middle = halfSize;
         //printf("n: %d, middle: %d \n", n, middle);

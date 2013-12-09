@@ -8,37 +8,55 @@
 	#include <GL/glut.h>
 #endif
 
+#define BLOCKDIM 16
+
 __global__ void filter(unsigned char *image, unsigned char *out, int n, int m)
 {
 	int i = blockIdx.x * blockDim.x + threadIdx.x;
 	int j = blockIdx.y * blockDim.y + threadIdx.y;
+	int ii = threadIdx.y;
+	int jj = threadIdx.x;
+	int nn = blockDim.x;
 	int sumx, sumy, sumz, k, l;
 
 // printf is OK under --device-emulation
 //	printf("%d %d %d %d\n", i, j, n, m);
 
+	__shared__ unsigned char gpu_image [BLOCKDIM * BLOCKDIM * 3];
+
 	if (j < n && i < m)
 	{
-		out[(i*n+j)*3+0] = image[(i*n+j)*3+0];
-		out[(i*n+j)*3+1] = image[(i*n+j)*3+1];
-		out[(i*n+j)*3+2] = image[(i*n+j)*3+2];
+		gpu_image[(ii*nn+jj)*3 + 0] = image[(i*n+j)*3+0];
+		gpu_image[(ii*nn+jj)*3 + 1] = image[(i*n+j)*3+1];
+		gpu_image[(ii*nn+jj)*3 + 2] = image[(i*n+j)*3+2];
 	}
+//(i*n+j) = (threadIdx.x+threadIdx.y*blockDim.x)
+	__syncthreads();
 	
-	if (i > 1 && i < m-2 && j > 1 && j < n-2)
+	if (ii > 1 && ii < nn-2 && jj > 1 && jj < nn-2)
 		{
 			// Filter kernel
 			sumx=0;sumy=0;sumz=0;
 			for(k=-2;k<3;k++)
 				for(l=-2;l<3;l++)
 				{
-					sumx += image[((i+k)*n+(j+l))*3+0];
-					sumy += image[((i+k)*n+(j+l))*3+1];
-					sumz += image[((i+k)*n+(j+l))*3+2];
+					sumx += gpu_image[((ii + k) * nn + (jj + l)) * 3 + 0];
+					sumy += gpu_image[((ii + k) * nn + (jj + l)) * 3 + 1];
+					sumz += gpu_image[((ii + k) * nn + (jj + l)) * 3 + 2];
 				}
 			out[(i*n+j)*3+0] = sumx/25;
 			out[(i*n+j)*3+1] = sumy/25;
 			out[(i*n+j)*3+2] = sumz/25;
 		}
+
+	__syncthreads();
+/*
+		if (j < n && i < m)
+	{
+		out[(i*n+j)*3+0] = gpu_image[(ii*nn+jj)*3 + 0];
+		out[(i*n+j)*3+1] = gpu_image[(ii*nn+jj)*3 + 1];
+		out[(i*n+j)*3+2] = gpu_image[(ii*nn+jj)*3 + 2];
+	} */
 }
 
 
@@ -56,7 +74,7 @@ void Draw()
 	cudaMalloc( (void**)&dev_out, n*m*3);
 	cudaMemcpy( dev_image, image, n*m*3, cudaMemcpyHostToDevice);
 	
-	dim3 dimBlock( 16, 16 );
+	dim3 dimBlock( BLOCKDIM, BLOCKDIM );
 	dim3 dimGrid( 32, 32 );
 	
 	filter<<<dimGrid, dimBlock>>>(dev_image, dev_out, n, m);

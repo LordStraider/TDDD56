@@ -8,33 +8,69 @@
 	#include <GL/glut.h>
 #endif
 
-#define BLOCKDIM 16
+#define BLOCKDIM 32
 
-__global__ void filter(unsigned char *image, unsigned char *out, int n, int m)
+__device__ void setPixel(unsigned char* out, unsigned char* gpu_img, unsigned char* source, int local_index, int global_index){
+  gpu_img[local_index + 0] = source[global_index + 0];
+  gpu_img[local_index + 1] = source[global_index + 1];
+  gpu_img[local_index + 2] = source[global_index + 2];
+ /* out[global_index+0] = 255;
+	out[global_index+1] = 0;
+	out[global_index+2] = 0;*/
+}
+
+__global__ void filter(unsigned char *image, unsigned char *out, int m, int n)
 {
-	int i = blockIdx.x * blockDim.x + threadIdx.x;
-	int j = blockIdx.y * blockDim.y + threadIdx.y;
-	int ii = threadIdx.y;
-	int jj = threadIdx.x;
-	int nn = blockDim.x;
+	int j = blockIdx.x * blockDim.x + threadIdx.x;
+	int i = blockIdx.y * blockDim.y + threadIdx.y;
+	int ii = threadIdx.y+2;
+	int jj = threadIdx.x+2;
+	int nn = blockDim.x+2;
 	int sumx, sumy, sumz, k, l;
 
-// printf is OK under --device-emulation
-//	printf("%d %d %d %d\n", i, j, n, m);
+// printf is OK under -arch=sm_20 
+// printf("%d %d %d %d\n", i, j, n, m);
 
-	__shared__ unsigned char gpu_image [BLOCKDIM * BLOCKDIM * 3];
+	__shared__ unsigned char gpu_image [(BLOCKDIM+4) * (BLOCKDIM+4) * 3];
 
-	if (j < n && i < m)
-	{
-		gpu_image[(ii*nn+jj)*3 + 0] = image[(i*n+j)*3+0];
-		gpu_image[(ii*nn+jj)*3 + 1] = image[(i*n+j)*3+1];
-		gpu_image[(ii*nn+jj)*3 + 2] = image[(i*n+j)*3+2];
+  /*out[(i*n+j)*3+0] = 0;
+	out[(i*n+j)*3+1] = 0;
+	out[(i*n+j)*3+2] = 0;*/
+
+//  if(blockIdx.x != 8 && blockIdx.x != 9) return;
+//  if(blockIdx.y != 8 && blockIdx.y != 9) return;
+
+	if (ii <= 3 && i > 1){ // upper border
+    if(jj <= 3 && j > 1){ // left border
+        setPixel(out, gpu_image, image, ((ii-2)*nn+(jj-2))*3, ((i-2)*n+(j-2))*3);
+    } else if (jj >= nn-4 && j < n-2){ // right border
+        setPixel(out, gpu_image, image, ((ii-2)*nn+(jj+2))*3, ((i-2)*n+(j+2))*3);
+    }
+    setPixel(out, gpu_image, image, ((ii-2)*nn+jj)*3, ((i-2)*n+j)*3);
+    
+  } else if(ii >= nn-4 && i < n-2){ // lower border
+    if(jj <= 3 && j > 1){ // left border
+        setPixel(out, gpu_image, image, ((ii+2)*nn+(jj-2))*3, ((i+2)*n+(j-2))*3);
+    } else if (jj >= nn-4 && j < n-2){ // right border
+        setPixel(out, gpu_image, image, ((ii+2)*nn+(jj+2))*3, ((i+2)*n+(j+2))*3);
+    }
+    setPixel(out, gpu_image, image, ((ii+2)*nn+jj)*3, ((i+2)*n+j)*3);
+
+  }
+
+  if(jj <= 3 && j > 1){ // left border
+    setPixel(out, gpu_image, image, (ii*nn+jj-2)*3, (i*n+j-2)*3);
+  } else if(jj >= nn-4 && j < n-2){ // right border
+    setPixel(out, gpu_image, image, (ii*nn+jj+2)*3, (i*n+j+2)*3);
+  }
+
+	if (j < n && i < m)	{
+    setPixel(out, gpu_image, image, (ii*nn+jj)*3, (i*n+j)*3);
 	}
+
 //(i*n+j) = (threadIdx.x+threadIdx.y*blockDim.x)
 	__syncthreads();
-	
-	if (ii > 1 && ii < nn-2 && jj > 1 && jj < nn-2)
-		{
+
 			// Filter kernel
 			sumx=0;sumy=0;sumz=0;
 			for(k=-2;k<3;k++)
@@ -47,16 +83,15 @@ __global__ void filter(unsigned char *image, unsigned char *out, int n, int m)
 			out[(i*n+j)*3+0] = sumx/25;
 			out[(i*n+j)*3+1] = sumy/25;
 			out[(i*n+j)*3+2] = sumz/25;
-		}
 
-	__syncthreads();
+	//__syncthreads();
 /*
-		if (j < n && i < m)
+		if (jj < n && ii < m && j < n && i < m)
 	{
 		out[(i*n+j)*3+0] = gpu_image[(ii*nn+jj)*3 + 0];
 		out[(i*n+j)*3+1] = gpu_image[(ii*nn+jj)*3 + 1];
 		out[(i*n+j)*3+2] = gpu_image[(ii*nn+jj)*3 + 2];
-	} */
+	} //*/
 }
 
 
@@ -75,11 +110,27 @@ void Draw()
 	cudaMemcpy( dev_image, image, n*m*3, cudaMemcpyHostToDevice);
 	
 	dim3 dimBlock( BLOCKDIM, BLOCKDIM );
-	dim3 dimGrid( 32, 32 );
+	dim3 dimGrid( 512/BLOCKDIM, 512/BLOCKDIM );
+	//dim3 dimGrid( 2, 1 );
 	
+
+  cudaEvent_t myEvent, myEvent2;
+  cudaEventCreate(&myEvent);
+  cudaEventCreate(&myEvent2);
+  cudaEventRecord(myEvent, 0);
+  cudaEventSynchronize(myEvent);
+
+
 	filter<<<dimGrid, dimBlock>>>(dev_image, dev_out, n, m);
 	cudaThreadSynchronize();
 	
+
+  cudaEventRecord(myEvent2, 0);
+  cudaEventSynchronize(myEvent2);
+	float theTime;
+  cudaEventElapsedTime(&theTime, myEvent, myEvent2);
+
+
 	cudaMemcpy( out, dev_out, n*m*3, cudaMemcpyDeviceToHost );
 	cudaFree(dev_image);
 	cudaFree(dev_out);
@@ -92,6 +143,8 @@ void Draw()
 	glRasterPos2i(0, -1);
 	glDrawPixels( n, m, GL_RGB, GL_UNSIGNED_BYTE, out );
 	glFlush();
+
+	printf("The gpu calculation took: %0.2f ms\n", theTime);
 }
 
 // Main program, inits

@@ -3,32 +3,38 @@
  * This kernel has a bug. What?
  */
 
-__kernel void sort(__global unsigned int *data, const unsigned int length)
+#define SIZE 512
+
+__kernel void sort(__global unsigned int *data, __global unsigned int *out, const unsigned int length)
 { 
   unsigned int pos = 0;
-  unsigned int i;
+  unsigned int i, j;
   unsigned int val;
 
-	__local float myBuffer[4096];
+	__local float myBuffer[SIZE];
 
-	const int n = get_global_size(0);
-	int x = get_group_id(0);
-	int y = get_group_id(1);
-	int idX = get_local_id(0);
-	int idY = get_local_id(1);
-	int xx = x*n + idX;
-	int yy = y*n + idY;
-	int index = get_global_id(0); //xx*n+yy;
+	int id = get_global_id(0);
+	
+	val = myBuffer[id];
 
-	myBuffer[index] = data[index];
-	barrier(CLK_LOCAL_MEM_FENCE);
+	for (j = 0; j < length; j+=SIZE){
+		myBuffer[id] = data[id*j];
+		barrier(CLK_LOCAL_MEM_FENCE);
 	
-  //find out how many values are smaller
-  for (i = 0; i < n; i++)
-    if (myBuffer[index] > data[i])
-      pos++;
+		//find out how many values are smaller
+		for (i = 0; i < get_global_size(0); i++)
+		  if (myBuffer[id] > myBuffer[id])
+		    pos++;
+
+		barrier(CLK_LOCAL_MEM_FENCE);
+	}
+
+	out[pos]=val;
+/*
+	for (i = 0; i < get_global_size(0); i++)
+		  if (data[get_global_id(0)] > data[i])
+		    pos++;
 	
-  val = myBuffer[index];
-	barrier(CLK_LOCAL_MEM_FENCE);
-  data[pos]=val;
+		val = data[get_global_id(0)];
+		out[pos]=val;*/
 }

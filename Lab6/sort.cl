@@ -18,16 +18,17 @@ __kernel void sort(__global unsigned int *data, const unsigned int length)
 	int idY = get_local_id(1);
 	int xx = x*n + idX;
 	int yy = y*n + idY;
+	int index = get_global_id(0); //xx*n+yy;
 
-	myBuffer[xx*n+yy] = data[xx*n+yy];
-	barrier(CLK_GLOBAL_MEM_FENCE);
+	myBuffer[index] = data[index];
+	barrier(CLK_LOCAL_MEM_FENCE);
 	
   //find out how many values are smaller
   for (i = 0; i < n; i++)
-    if (myBuffer[xx*n+yy] > myBuffer[i])
+    if (myBuffer[index] > data[i])
       pos++;
 	
-  val = myBuffer[xx*n+yy];
+  val = myBuffer[index];
 	barrier(CLK_LOCAL_MEM_FENCE);
   data[pos]=val;
 }

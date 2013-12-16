@@ -63,6 +63,7 @@ __global__ void filter(unsigned char *image, unsigned char *out, int m, int n)
 
 	__syncthreads();
 	
+
 		// Filter kernel
 		sumx=0;sumy=0;sumz=0;
 		for(k=-2;k<3;k++)

@@ -18,8 +18,8 @@
 
 
 // Size of data!
-#define dataWidth 64
-#define dataHeight 64
+#define dataWidth 128
+#define dataHeight 128
 
 
 // global variables
@@ -165,7 +165,7 @@ int gpu_Sort(unsigned int *data, unsigned int length)
     if (length<512) localWorkSize  = length;
     else            localWorkSize  = 512;
     globalWorkSize = length;
-
+    
     // set the args values
     ciErrNum  = clSetKernelArg(gpgpuSort, 0, sizeof(cl_mem),  (void *) &io_data);
     ciErrNum |= clSetKernelArg(gpgpuSort, 1, sizeof(cl_mem),  (void *) &out_data);

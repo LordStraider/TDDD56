@@ -10,7 +10,7 @@ __kernel void sort(__global unsigned int *data, __global unsigned int *out, cons
   unsigned int pos = 0;
   unsigned int i, j;
   unsigned int val;
-  
+  /*
 	__local unsigned int myBuffer[SIZE];
 
 	int id = get_local_id(0);
@@ -31,11 +31,11 @@ __kernel void sort(__global unsigned int *data, __global unsigned int *out, cons
 	}
 
 	out[pos]=val;
-
-	/*for (i = 0; i < get_global_size(0); i++)
+*/
+	for (i = 0; i < get_global_size(0); i++)
 		  if (data[get_global_id(0)] > data[i])
 		    pos++;
 	
 		val = data[get_global_id(0)];
-		out[pos]=val;*/
+		out[pos]=val;
 }

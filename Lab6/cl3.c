@@ -64,24 +64,22 @@ void cpu_WL(unsigned char *image, unsigned char *data, unsigned int length)
     
   //OUT2
     local_pixel = i+3*dataWidth/2; 
-  
-    data[local_pixel]   = (image[j] + image[j+3] - image[j+dataWidth*3] - image[j+3+dataWidth*3])/4;
-    data[local_pixel+1] = (image[j+1] + image[j+3+1] - image[j+dataWidth*3+1] - image[j+3+dataWidth*3+1])/4;
-    data[local_pixel+2] = (image[j+2] + image[j+3+2] - image[j+dataWidth*3+2] - image[j+3+dataWidth*3+2])/4;
+    data[local_pixel]   = (image[j] + image[j+3] - image[j+dataWidth*3] - image[j+3+dataWidth*3])/4+128;
+    data[local_pixel+1] = (image[j+1] + image[j+3+1] - image[j+dataWidth*3+1] - image[j+3+dataWidth*3+1])/4+128;
+    data[local_pixel+2] = (image[j+2] + image[j+3+2] - image[j+dataWidth*3+2] - image[j+3+dataWidth*3+2])/4+128;
     
     
   //OUT3
     local_pixel = i+length/2;
-    data[local_pixel]   = (image[j] - image[j+3] + image[j+dataWidth*3] - image[j+3+dataWidth*3])/4;
-    data[local_pixel+1] = (image[j+1] - image[j+3+1] + image[j+dataWidth*3+1] - image[j+3+dataWidth*3+1])/4;
-    data[local_pixel+2] = (image[j+2] - image[j+3+2] + image[j+dataWidth*3+2] - image[j+3+dataWidth*3+2])/4;
+    data[local_pixel]   = (image[j] - image[j+3] + image[j+dataWidth*3] - image[j+3+dataWidth*3])/4+128;
+    data[local_pixel+1] = (image[j+1] - image[j+3+1] + image[j+dataWidth*3+1] - image[j+3+dataWidth*3+1])/4+128;
+    data[local_pixel+2] = (image[j+2] - image[j+3+2] + image[j+dataWidth*3+2] - image[j+3+dataWidth*3+2])/4+128;
     
   //OUT4
     local_pixel = i+length/2+3*dataWidth/2;
-    
-    data[local_pixel]   = (image[j] - image[j+3] - image[j+dataWidth*3] + image[j+3+dataWidth*3])/4;
-    data[local_pixel+1] = (image[j+1] - image[j+3+1] - image[j+dataWidth*3+1] + image[j+3+dataWidth*3+1])/4;
-    data[local_pixel+2] = (image[j+2] - image[j+3+2] - image[j+dataWidth*3+2] + image[j+3+dataWidth*3+2])/4;
+    data[local_pixel]   = (image[j] - image[j+3] - image[j+dataWidth*3] + image[j+3+dataWidth*3])/4+128;
+    data[local_pixel+1] = (image[j+1] - image[j+3+1] - image[j+dataWidth*3+1] + image[j+3+dataWidth*3+1])/4+128;
+    data[local_pixel+2] = (image[j+2] - image[j+3+2] - image[j+dataWidth*3+2] + image[j+3+dataWidth*3+2])/4+128;
   }  
 }
 
